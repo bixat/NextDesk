@@ -1,0 +1,42 @@
+name: ai_automation_app
+description: AI-powered automation app with Gemini
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Core packages
+  google_generative_ai: ^0.4.3
+  bixat_key_mouse: ^1.0.1
+  screen_capturer: ^0.2.1
+  
+  # State management
+  provider: ^6.1.1
+  
+  # Local storage
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
+  
+  # UI
+  flutter_animate: ^4.5.0
+  google_fonts: ^6.1.0
+  
+  # Utilities
+  path_provider: ^2.1.1
+  uuid: ^4.2.1
+  image: ^4.5.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.7
+  isar_generator: ^3.1.0+1
+
+flutter:
+  uses-material-design: true
