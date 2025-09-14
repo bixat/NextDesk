@@ -103,7 +103,7 @@ class ElementPositionDetector {
 Analyze the provided screenshot.
 Find the center coordinates of the element described as: "$elementDescription".
 Return your answer ONLY as a JSON object with 'x' and 'y' keys.
-For example: {"x": 123, "y": 456}
+For example: {"x": 123, "y": 456, "image_description": "Short image description"}
 ''';
 
       // Prepare API request
@@ -285,8 +285,8 @@ class AutomationFunctions {
       // Determine new dimensions while preserving aspect ratio
       final resizedImage = img.copyResize(
         image,
-        width: image.width,
-        height: image.height,
+        width: (image.width / 3).toInt(),
+        height: (image.height / 3).toInt(),
       );
 
       // Encode the resized image to a PNG byte array
@@ -413,34 +413,21 @@ class AutomationFunctions {
   }
 
   // Press key function
-  Map<String, dynamic> pressKey({
-    required String key,
-    List<String> modifiers = const [],
-  }) {
+  Future<Map<String, dynamic>> pressKeys({required List keys}) async {
     try {
-      final modifierMap = {
-        'ctrl': UniversalKey.leftControl,
-        'alt': UniversalKey.leftAlt,
-        'shift': UniversalKey.leftShift,
-        'cmd': UniversalKey.leftCommand,
-        'meta': UniversalKey.leftCommand,
-      };
-
-      // Press modifiers
-      for (final mod in modifiers) {
-        final modKey = modifierMap[mod.toLowerCase()];
-        if (modKey != null) {
-          BixatKeyMouse.simulateKey(key: modKey);
-        }
+      final unvKeys = <UniversalKey>[];
+      for (var key in keys) {
+        final unvKey = UniversalKey.values.firstWhere((e) => e.name == key);
+        unvKeys.add(unvKey);
       }
-
+      BixatKeyMouse.simulateKeyCombination(keys: unvKeys);
       return {
         'success': true,
-        'message': 'Key pressed: $key with modifiers: $modifiers',
-        'key': key,
-        'modifiers': modifiers,
+        'message': 'Keys pressed: $keys',
+        'keys': keys,
       };
     } catch (e) {
+      print(e);
       return {
         'success': false,
         'message': 'Error pressing key: $e',
@@ -593,24 +580,24 @@ class AppState extends ChangeNotifier {
       ],
     );
 
-    final pressKeyTool = Tool(
+    final pressKeysTool = Tool(
       functionDeclarations: [
         FunctionDeclaration(
-          'pressKey',
-          'Presses a keyboard key with optional modifiers',
+          'pressKeys',
+          'Presses a keyboard keys',
           Schema(
             SchemaType.object,
             properties: {
-              'key': Schema(SchemaType.string,
-                  description:
-                      'Key to press (e.g., enter, escape, tab, space, up, down, left, right)'),
-              'modifiers': Schema(
+              'keys': Schema(
                 SchemaType.array,
-                description: 'Modifier keys to hold (ctrl, alt, shift, cmd)',
-                items: Schema(SchemaType.string),
+                description: 'Key to press [cmd, space]',
+                items: Schema(
+                  SchemaType.string,
+                  enumValues: UniversalKey.values.map((e) => e.name).toList(),
+                ),
               ),
             },
-            requiredProperties: ['key'],
+            requiredProperties: ['keys'],
           ),
         ),
       ],
@@ -641,7 +628,7 @@ class AppState extends ChangeNotifier {
         moveMouseTool,
         clickMouseTool,
         typeTextTool,
-        pressKeyTool,
+        pressKeysTool,
         waitTool,
       ],
     );
@@ -680,32 +667,39 @@ class AppState extends ChangeNotifier {
 
       // ReAct system prompt with structured reasoning format
       final systemPrompt = '''
-            You are an AI automation assistant using the ReAct (Reasoning + Acting) framework.
-            Follow this structured format for each iteration:
+            You are an AI automation assistant operating under the ReAct (Reasoning + Acting) framework. Your primary goal is to complete the given task with maximum efficiency and reliability.
 
-            THOUGHT: [Your reasoning about the current situation, what you observe, and what action to take next]
-            ACTION: [The function call to execute, if any]
-            OBSERVATION: [The result of your action]
+            **CORE PRINCIPLES:**
+            1.  **Keyboard Priority:** You MUST prioritize keyboard shortcuts (`pressKeys`) and navigation over mouse actions. Only use the mouse (`moveMouse`, `clickMouse`) if a keyboard alternative does not exist or is demonstrably less reliable for the specific UI.
+            2.  **Action-Oriented Steps:** Break the task down into discrete, atomic actions. Each ACTION should be a single, executable step.
+            3.  **Verification & Observability:** You MUST verify the success of every single action before proceeding. The primary method for this is:
+                *   **Pre-Action Verification:** Use `detectElementPosition` to confirm an element is present and actionable *before* interacting with it.
+                *   **Post-Action Verification:** Use `captureScreenshot` and/or a subsequent `detectElementPosition` to confirm the expected state change occurred *after* the action.
 
-            Available functions:
-            - captureScreenshot(): Take a screenshot of the screen
-            - detectElementPosition(elementDescription): Find UI elements using natural language descriptions
-            - moveMouse(x, y): Move mouse to coordinates
-            - clickMouse(button, action): Click mouse buttons at current position
-            - typeText(text): Type text using keyboard
-            - pressKey(key, modifiers): Press keyboard keys
-            - wait(seconds): Wait for specified time
+            **STRUCTURED EXECUTION FORMAT:**
+            For every step, you MUST follow this cycle:
 
-            IMPORTANT RULES:
-            1. Always start with THOUGHT to reason about the current situation
-            2. After each action, reflect on the OBSERVATION in your next THOUGHT
-            3. If an action fails, reason about why and try a different approach
-            4. Take screenshots frequently to maintain situational awareness
-            5. Use natural language descriptions for UI elements
-            6. When task is complete, say "TASK COMPLETE" in your THOUGHT
+            **THOUGHT:** [Your reasoning. Analyze the last observation. State your next goal and the specific, best method to achieve it (justifying keyboard vs. mouse). Predict what you expect to see after the action to define verification criteria.]
+            **ACTION:** [The SINGLE function call to execute. Choose from the list below.]
+            **OBSERVATION:** [The result of your action. This is provided by the system. You will reason about it in your next THOUGHT.]
 
-            Current Task: "$input"
+            **AVAILABLE FUNCTIONS:**
+            - `captureScreenshot()`: Takes a screenshot. Use this to document state and verify changes.
+            - `detectElementPosition(elementDescription)`: Finds a UI element. Use a clear, natural language description (e.g., "blue 'Submit' button", "search bar in the top right", "Chrome icon on the taskbar").
+            - `moveMouse(x, y)`: Moves mouse to coordinates (obtained from `detectElementPosition`).
+            - `clickMouse(button, action)`: Clicks ('left', 'right') or ('click', 'doubleClick') at the current mouse position.
+            - `typeText(text)`: Types a string of text.
+            - `pressKeys(keys)`: Presses keyboard keys (e.g., `"Enter"`, `"Alt+Tab"`, `"Ctrl+s"`). **THIS IS YOUR PREFERRED METHOD.**
+            - `wait(seconds)`: Waits for a specified time. Use sparingly; prefer to `detectElementPosition` to wait for an element to appear.
 
+            **CRITICAL RULES:**
+            1.  **Always Start with THOUGHT:** Never call an ACTION without preceding reasoning.
+            2.  **Verify Relentlessly:** A step is not complete until its success is verified. If verification fails, reason about why and adapt your plan.
+            3.  **Screenshots are Evidence:** Use `captureScreenshot` after key actions to maintain a visual log and confirm state changes that might be hard to describe (e.g., a menu opening, a visual notification appearing).
+            4.  **Task Completion:** When the final goal of the task is achieved, state "TASK COMPLETE" in your THOUGHT and provide a final verification step (e.g., a screenshot showing the successful outcome).
+
+            **Current Task: "$input"**
+            **Operation system: ${Platform.operatingSystem}**
             Begin with your first THOUGHT:
             ''';
 
@@ -854,12 +848,9 @@ class AppState extends ChangeNotifier {
             text: call.args['text'] as String,
           );
 
-        case 'pressKey':
-          return _automationFunctions.pressKey(
-            key: call.args['key'] as String,
-            modifiers:
-                (call.args['modifiers'] as List<dynamic>?)?.cast<String>() ??
-                    [],
+        case 'pressKeys':
+          return _automationFunctions.pressKeys(
+            keys: call.args['keys'] as List,
           );
 
         case 'wait':

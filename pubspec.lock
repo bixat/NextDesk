@@ -44,11 +44,10 @@ packages:
   bixat_key_mouse:
     dependency: "direct main"
     description:
-      name: bixat_key_mouse
-      sha256: "4dad59d43d3d114aa2cc557e444dcca24ac562442ae00c413d93797df3637ea0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.1"
+      path: "../bixat_key_mouse_dart"
+      relative: true
+    source: path
+    version: "1.0.2"
   boolean_selector:
     dependency: transitive
     description:
