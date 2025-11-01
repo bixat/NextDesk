@@ -12,8 +12,7 @@ dependencies:
   
   # Core packages
   google_generative_ai: ^0.4.3
-  bixat_key_mouse:
-    path: ../bixat_key_mouse_dart
+  bixat_key_mouse: 1.0.3
   screen_capturer: ^0.2.1
   
   # State management

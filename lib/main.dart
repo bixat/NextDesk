@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bixat_key_mouse/bixat_key_mouse.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'config/app_theme.dart';
 import 'providers/app_state.dart';
 import 'screens/main_screen.dart';
 
@@ -23,12 +23,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'ReAct AI Automation',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: Colors.blue,
-        scaffoldBackgroundColor: const Color(0xFF0A0A0A),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-      ),
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.darkTheme,
       home: const MainScreen(),
     );
   }
