@@ -6,39 +6,84 @@ An intelligent desktop automation application powered by Google's Gemini AI that
 
 This Flutter desktop application combines AI reasoning with computer vision and input control to automate desktop tasks. Simply describe what you want to do in natural language (e.g., "open Chrome and search for Flutter documentation"), and the AI agent will break it down into executable steps, reason about each action, and perform the automation.
 
+## 📸 Screenshots
+
+### Thoughts Tab
+![ReAct Thoughts](reAct_thoughts.png)
+*The AI's reasoning process displayed in real-time with numbered thought steps*
+
+### Actions Tab
+![ReAct Actions](reAct_actions.png)
+*Execution log showing all function calls and their parameters*
+
 ## 🏗️ Project Structure
 
 ```
 desktop_agent/
 ├── lib/
-│   ├── main.dart              # Main application entry point & all core logic
-│   ├── main.g.dart            # Generated Isar database code
-│   └── services/              # (Currently empty - future modular services)
-├── macos/                     # macOS platform-specific code
-├── windows/                   # Windows platform-specific code
-├── linux/                     # Linux platform-specific code
-├── pubspec.yaml               # Dependencies and project configuration
-└── README.md                  # This file
+│   ├── main.dart                      # Application entry point (37 lines)
+│   ├── config/
+│   │   └── app_theme.dart            # Centralized theme & design system
+│   ├── models/
+│   │   ├── task.dart                 # Task data model (Isar)
+│   │   ├── detection_result.dart     # UI element detection results
+│   │   └── react_agent_state.dart    # ReAct agent state
+│   ├── services/
+│   │   ├── gemini_service.dart       # Gemini AI model initialization
+│   │   ├── vision_service.dart       # AI-powered UI element detection
+│   │   └── automation_service.dart   # All automation functions
+│   ├── providers/
+│   │   └── app_state.dart            # Main state management (Provider)
+│   ├── screens/
+│   │   └── main_screen.dart          # Main UI with responsive layout
+│   ├── widgets/
+│   │   └── task_card.dart            # Reusable task card widget
+│   └── main.g.dart                   # Generated Isar database code
+├── macos/                             # macOS platform-specific code
+├── windows/                           # Windows platform-specific code
+├── linux/                             # Linux platform-specific code
+├── pubspec.yaml                       # Dependencies and project configuration
+└── README.md                          # This file
 ```
 
-### Key Components in `main.dart`
+### Architecture Overview
 
-The application is structured as a single-file architecture with the following main components:
+The application follows **separation of concerns** with a clean modular architecture:
 
-1. **Data Models**
-   - `Task`: Isar database model for storing automation tasks
-   - `DetectionResult`: Model for UI element detection results
+#### 1. **Models** (`lib/models/`)
+   - `Task`: Isar database model for storing automation tasks with thoughts and steps
+   - `DetectionResult`: Model for UI element detection results with coordinates
    - `ReActAgentState`: State management for the ReAct reasoning cycle
 
-2. **Core Services**
-   - `VisionService`: AI-powered UI element detection using Gemini Vision
-   - `AutomationFunctions`: Wrapper for all automation capabilities
-   - `AppState`: Main state management using Provider
+#### 2. **Services** (`lib/services/`)
+   - `GeminiService`: Initializes and configures Gemini AI model with function calling
+   - `VisionService`: AI-powered UI element detection using Gemini Vision API
+   - `AutomationService`: Wrapper for all automation capabilities (mouse, keyboard, screen)
 
-3. **UI Components**
-   - `MainScreen`: Primary interface with input, logs, and task history
-   - `TaskHistoryPanel`: Displays past automation tasks
-   - Custom widgets for execution logs and agent thoughts
+#### 3. **Providers** (`lib/providers/`)
+   - `AppState`: Main state management using Provider pattern
+     - Manages task execution state
+     - Handles ReAct agent lifecycle
+     - Stores execution logs and thought history
+     - Manages database operations
+
+#### 4. **Screens** (`lib/screens/`)
+   - `MainScreen`: Primary interface with responsive layout
+     - Adaptive design (800px breakpoint)
+     - Side-by-side panels on large screens
+     - Drawer navigation on small screens
+     - Tabbed interface for thoughts and actions
+
+#### 5. **Widgets** (`lib/widgets/`)
+   - `TaskCard`: Reusable task card with animations and metrics
+
+#### 6. **Configuration** (`lib/config/`)
+   - `AppTheme`: Centralized design system
+     - Material Design 3 theme
+     - Color palette (Purple/Blue/Green)
+     - 8px spacing system
+     - Typography using Google Fonts Inter
+     - Shadow and border radius constants
 
 ## 🧠 How It Works: The ReAct Framework
 
@@ -154,22 +199,29 @@ class Task {
 
 ## 📦 Dependencies
 
-### Core Packages
-- **google_generative_ai** (^0.4.3): Gemini AI integration
-- **bixat_key_mouse**: Custom package for mouse/keyboard control
-- **screen_capturer** (^0.2.1): Screen capture functionality
+### Core AI & Automation
+- **google_generative_ai** (^0.4.3): Gemini AI integration with function calling
+- **bixat_key_mouse**: Custom Rust-based FFI package for mouse/keyboard control
+- **screen_capturer** (^0.2.1): Cross-platform screen capture functionality
 
-### State & Storage
-- **provider** (^6.1.1): State management
-- **isar** (^3.1.0+1): Local NoSQL database
-- **isar_flutter_libs** (^3.1.0+1): Isar platform bindings
+### State Management & Storage
+- **provider** (^6.1.1): State management using ChangeNotifier pattern
+- **isar** (^3.1.0+1): Fast, local NoSQL database for task persistence
+- **isar_flutter_libs** (^3.1.0+1): Isar platform-specific bindings
 
-### UI & Utilities
-- **flutter_animate** (^4.5.0): UI animations
-- **google_fonts** (^6.1.0): Typography
-- **path_provider** (^2.1.1): File system paths
-- **uuid** (^4.2.1): Unique identifiers
-- **image** (^4.5.4): Image processing
+### UI & Design
+- **flutter_animate** (^4.5.0): Declarative animations and transitions
+- **google_fonts** (^6.1.0): Inter font family for typography
+- **Material Design 3**: Modern design system with gradient themes
+
+### Utilities
+- **path_provider** (^2.1.1): Access to file system paths
+- **uuid** (^4.2.1): Generate unique identifiers for tasks
+- **image** (^4.5.4): Image processing and manipulation
+
+### Development
+- **build_runner** (^2.4.6): Code generation for Isar
+- **isar_generator** (^3.1.0+1): Generates Isar database code
 
 ## 🚀 Getting Started
 
@@ -198,11 +250,16 @@ class Task {
    ../bixat_key_mouse_dart
    ```
 
-4. **Add your Gemini API key**
+4. **Configure API key**
 
-   Open `lib/main.dart` and replace the API key:
+   Copy the example config file and add your API key:
+   ```bash
+   cp lib/config/app_config.dart.example lib/config/app_config.dart
+   ```
+
+   Then open `lib/config/app_config.dart` and replace the API key:
    ```dart
-   const apiKey = 'YOUR_GEMINI_API_KEY_HERE';
+   static const String geminiApiKey = 'YOUR_GEMINI_API_KEY_HERE';
    ```
 
 5. **Generate Isar database code**
@@ -214,6 +271,8 @@ class Task {
    ```bash
    flutter run -d macos  # or windows/linux
    ```
+
+
 
 ## 💡 Usage Examples
 
@@ -270,25 +329,39 @@ Input: "Take a screenshot and save it"
 ## 🎯 Key Features
 
 ### ✅ Implemented
+
 - ✅ Natural language task understanding
-- ✅ ReAct reasoning framework
-- ✅ AI-powered UI element detection
+- ✅ ReAct reasoning framework (Thought → Action → Observation)
+- ✅ AI-powered UI element detection using computer vision
 - ✅ Mouse and keyboard automation
 - ✅ Screenshot capture and analysis
-- ✅ Task history and persistence
-- ✅ Real-time execution logs
-- ✅ Thought process visualization
-- ✅ Multi-step task execution
+- ✅ Task history and persistence (Isar database)
+- ✅ Multi-step task execution with iteration control
+- ✅ Real-time execution logs and thought visualization
+- ✅ Responsive desktop interface
 
 ### 🔮 Future Enhancements
 - [ ] Multi-monitor support
 - [ ] Task templates and macros
 - [ ] Voice command input
-- [ ] Task scheduling
+- [ ] Task scheduling and automation
 - [ ] Error recovery and retry logic
 - [ ] Performance optimization
 - [ ] Plugin system for custom actions
 - [ ] Cloud sync for task history
+- [ ] Dark/Light theme toggle
+- [ ] Export task history to JSON/CSV
+
+## 🏛️ Code Organization
+
+The project follows a clean, modular architecture with clear separation of concerns:
+
+- **Models**: Data structures for tasks, detection results, and agent state
+- **Services**: AI integration, vision processing, and automation functions
+- **Providers**: State management using Provider pattern
+- **Screens**: Main UI with responsive layout
+- **Widgets**: Reusable UI components
+- **Config**: Centralized theme and design system
 
 ## 🔒 Security & Privacy
 
@@ -296,29 +369,57 @@ Input: "Take a screenshot and save it"
 - **Local Processing**: All automation runs locally on your machine
 - **Data Storage**: Task history is stored locally using Isar database
 - **Screenshots**: Temporary screenshots are kept in memory and not persisted
+- **No Telemetry**: No data is sent to external servers except Gemini API calls
+- **Permissions**: Requires accessibility permissions for automation (user-controlled)
+
+
+
+## ⚠️ Known Limitations
+
+### Element Detection Accuracy
+The `detectElementPosition` function uses AI vision to locate UI elements, but it's **not always precise**:
+- **Accuracy varies**: Detection may be off by several pixels or fail entirely
+- **Complex UIs**: Elements in dense or overlapping layouts are harder to detect
+- **Similar elements**: May confuse similar-looking buttons or icons
+- **Recommendation**: Use keyboard shortcuts (`pressKeys`) whenever possible instead of relying on mouse clicks with element detection
+- **Workaround**: Provide very specific descriptions (e.g., "blue Submit button in bottom right corner" instead of just "Submit button")
+
+This is a limitation of the current AI vision model and may improve with future updates.
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
 1. **"Failed to detect element"**
-   - Ensure the element description is clear and specific
+   - **Note**: Element detection is not always precise and may fail
+   - Use keyboard shortcuts instead of mouse clicks when possible
+   - Ensure the element description is very clear and specific
    - Try taking a screenshot first to verify the UI state
    - Check that the element is visible on screen
+   - Improve description with more details (e.g., "blue Submit button in bottom right corner with white text")
 
 2. **"API key error"**
    - Verify your Gemini API key is valid
    - Check your internet connection
    - Ensure you haven't exceeded API quotas
+   - Update the API key in `lib/services/gemini_service.dart`
 
 3. **Mouse/keyboard not working**
-   - Grant accessibility permissions to the app
+   - Grant accessibility permissions to the app (System Preferences → Security & Privacy)
    - Check that `bixat_key_mouse` package is properly installed
    - Verify platform-specific permissions
+   - Restart the application after granting permissions
 
-## 📄 License
+4. **UI not responsive**
+   - Resize the window to trigger responsive breakpoints
+   - Check that the window width crosses the 800px threshold
+   - Restart the app if drawer doesn't appear on small screens
 
-[Add your license here]
+5. **Animations not smooth**
+   - Ensure you're running in release mode for best performance
+   - Check system resources (CPU/Memory)
+   - Disable animations in `main_screen.dart` if needed
+
 
 ## 🤝 Contributing
 
@@ -326,7 +427,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📧 Contact
 
-[Add your contact information here]
+https://bixat.dev
 
 ---
 

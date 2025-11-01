@@ -1,11 +1,10 @@
 import 'dart:io';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:bixat_key_mouse/bixat_key_mouse.dart';
+import '../config/app_config.dart';
 
 /// Service for managing Gemini AI model and tools
 class GeminiService {
-  static const String apiKey = 'AIzaSyCqF8yEv4MwA_rp6vzdUckXMt0qGHRg6X4';
-
   /// Initialize Gemini model with function declarations
   static GenerativeModel initializeModel() {
     // Define function declarations for Gemini
@@ -134,7 +133,7 @@ class GeminiService {
 
     return GenerativeModel(
       model: 'gemini-2.5-flash',
-      apiKey: apiKey,
+      apiKey: AppConfig.geminiApiKey,
       tools: [
         captureScreenshotTool,
         detectElementTool,
@@ -187,4 +186,3 @@ Begin with your first THOUGHT:
 ''';
   }
 }
-

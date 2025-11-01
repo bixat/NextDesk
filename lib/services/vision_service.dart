@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../models/detection_result.dart';
+import '../config/app_config.dart';
 
 /// Element Position Detection Service using Gemini Vision API
 class VisionService {
-  static const String _apiKey = "AIzaSyCqF8yEv4MwA_rp6vzdUckXMt0qGHRg6X4";
   static const String _apiUrl =
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
@@ -56,7 +56,7 @@ For example: {"x": 123, "y": 456, "image_description": "Short image description"
 
       // Make API request
       final response = await http.post(
-        Uri.parse('$_apiUrl?key=$_apiKey'),
+        Uri.parse('$_apiUrl?key=${AppConfig.geminiApiKey}'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -151,4 +151,3 @@ For example: {"x": 123, "y": 456, "image_description": "Short image description"
     }
   }
 }
-
