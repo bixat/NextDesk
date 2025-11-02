@@ -133,6 +133,7 @@ class AppState extends ChangeNotifier {
             // Execute the function
             final result = await _executeFunction(functionCall);
             _agentState.lastObservation = jsonEncode(result);
+            print('Function result: $result');
 
             // Send observation back to continue ReAct cycle
             response = await chat.sendMessage(
@@ -157,7 +158,8 @@ class AppState extends ChangeNotifier {
 
       // Mark task as completed
       if (currentTask != null) {
-        currentTask!.completed = true;
+        currentTask!.status = TaskStatus.completed;
+        currentTask!.thoughts = thoughtLog;
         currentTask!.steps = executionLog.map((e) => jsonEncode(e)).toList();
         await _isar.writeTxn(() async {
           await _isar.tasks.put(currentTask!);
@@ -169,10 +171,21 @@ class AppState extends ChangeNotifier {
     } catch (e) {
       status = 'Error: $e';
       print('Error: $e');
+
+      // Mark task as failed
+      if (currentTask != null) {
+        currentTask!.status = TaskStatus.failed;
+        currentTask!.thoughts = thoughtLog;
+        currentTask!.steps = executionLog.map((e) => jsonEncode(e)).toList();
+        await _isar.writeTxn(() async {
+          await _isar.tasks.put(currentTask!);
+        });
+      }
     } finally {
       isExecuting = false;
       currentStep = null;
       _agentState.isReasoning = false;
+      await loadTasks();
       notifyListeners();
     }
   }
@@ -252,9 +265,21 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Delete a task from the database
+  Future<void> deleteTask(int taskId) async {
+    await _isar.writeTxn(() async {
+      await _isar.tasks.delete(taskId);
+    });
+    await loadTasks();
+  }
+
+  /// Re-run a task with the same prompt
+  Future<void> rerunTask(Task task) async {
+    await processUserInput(task.prompt);
+  }
+
   // Getters
   ReActAgentState get agentState => _agentState;
   List<String> get thoughts => thoughtLog;
   GenerativeModel? get model => _model;
 }
-

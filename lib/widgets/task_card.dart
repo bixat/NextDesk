@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/task.dart';
 import '../config/app_theme.dart';
+import '../screens/task_detail_screen.dart';
+import '../providers/app_state.dart';
 
 class TaskCard extends StatelessWidget {
   final Task task;
@@ -17,19 +20,26 @@ class TaskCard extends StatelessWidget {
         color: AppTheme.surfaceMedium,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         border: Border.all(
-          color: task.completed
+          color: task.isCompleted
               ? AppTheme.accentGreen.withOpacity(0.5)
-              : AppTheme.borderMedium,
-          width: task.completed ? 1.5 : 1,
+              : task.isFailed
+                  ? AppTheme.errorRed.withOpacity(0.5)
+                  : AppTheme.borderMedium,
+          width: task.isCompleted || task.isFailed ? 1.5 : 1,
         ),
-        boxShadow: task.completed ? AppTheme.shadowSm : null,
+        boxShadow: task.isCompleted || task.isFailed ? AppTheme.shadowSm : null,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           onTap: () {
-            // TODO: Show task details
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TaskDetailScreen(task: task),
+              ),
+            );
           },
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spaceMd),
@@ -43,19 +53,25 @@ class TaskCard extends StatelessWidget {
                       duration: const Duration(milliseconds: 300),
                       padding: const EdgeInsets.all(AppTheme.spaceXs),
                       decoration: BoxDecoration(
-                        color: task.completed
+                        color: task.isCompleted
                             ? AppTheme.accentGreen.withOpacity(0.15)
-                            : AppTheme.surfaceLight,
+                            : task.isFailed
+                                ? AppTheme.errorRed.withOpacity(0.15)
+                                : AppTheme.surfaceLight,
                         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                       ),
                       child: Icon(
-                        task.completed
+                        task.isCompleted
                             ? Icons.check_circle_rounded
-                            : Icons.radio_button_unchecked_rounded,
+                            : task.isFailed
+                                ? Icons.error_rounded
+                                : Icons.pending_rounded,
                         size: 20,
-                        color: task.completed
+                        color: task.isCompleted
                             ? AppTheme.accentGreen
-                            : AppTheme.textTertiary,
+                            : task.isFailed
+                                ? AppTheme.errorRed
+                                : AppTheme.warningOrange,
                       ),
                     ),
                     const SizedBox(width: AppTheme.spaceMd),
@@ -69,6 +85,22 @@ class TaskCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+                    ),
+                    // Quick action buttons
+                    _buildQuickActionButton(
+                      context: context,
+                      icon: Icons.replay_rounded,
+                      color: AppTheme.secondaryBlue,
+                      tooltip: 'Re-run',
+                      onTap: () => _rerunTask(context),
+                    ),
+                    const SizedBox(width: AppTheme.spaceXs),
+                    _buildQuickActionButton(
+                      context: context,
+                      icon: Icons.delete_outline_rounded,
+                      color: AppTheme.errorRed,
+                      tooltip: 'Delete',
+                      onTap: () => _deleteTask(context),
                     ),
                   ],
                 ),
@@ -168,5 +200,128 @@ class TaskCard extends StatelessWidget {
     if (diff.inHours < 1) return '${diff.inMinutes}m ago';
     if (diff.inDays < 1) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
+  }
+
+  Widget _buildQuickActionButton({
+    required BuildContext context,
+    required IconData icon,
+    required Color color,
+    required String tooltip,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(AppTheme.spaceXs),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: color,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _rerunTask(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.surfaceMedium,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.replay_rounded, color: AppTheme.secondaryBlue),
+            const SizedBox(width: AppTheme.spaceMd),
+            Text('Re-run Task?'),
+          ],
+        ),
+        content: Text(
+          'Execute this task again?',
+          style: TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final appState = Provider.of<AppState>(context, listen: false);
+              appState.rerunTask(task);
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Task re-run started'),
+                  backgroundColor: AppTheme.secondaryBlue,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.secondaryBlue,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Re-run'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteTask(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.surfaceMedium,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.warning_rounded, color: AppTheme.errorRed),
+            const SizedBox(width: AppTheme.spaceMd),
+            Text('Delete Task?'),
+          ],
+        ),
+        content: Text(
+          'This action cannot be undone.',
+          style: TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final appState = Provider.of<AppState>(context, listen: false);
+              appState.deleteTask(task.id);
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Task deleted'),
+                  backgroundColor: AppTheme.errorRed,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorRed,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 }

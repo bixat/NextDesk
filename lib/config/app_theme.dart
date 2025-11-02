@@ -11,39 +11,39 @@ class AppTheme {
   static const Color primaryPurple = Color(0xFF9D4EDD);
   static const Color primaryPurpleLight = Color(0xFFC77DFF);
   static const Color primaryPurpleDark = Color(0xFF7B2CBF);
-  
+
   static const Color secondaryBlue = Color(0xFF3A86FF);
   static const Color secondaryBlueLight = Color(0xFF5E9FFF);
   static const Color secondaryBlueDark = Color(0xFF2667D9);
-  
+
   static const Color accentGreen = Color(0xFF06FFA5);
   static const Color accentGreenDark = Color(0xFF00D97E);
-  
+
   static const Color errorRed = Color(0xFFFF006E);
   static const Color warningOrange = Color(0xFFFFBE0B);
-  
+
   // Background colors
   static const Color backgroundDark = Color(0xFF0D0D0D);
   static const Color backgroundMedium = Color(0xFF1A1A1A);
   static const Color backgroundLight = Color(0xFF242424);
   static const Color backgroundElevated = Color(0xFF2D2D2D);
-  
+
   // Surface colors
   static const Color surfaceDark = Color(0xFF1E1E1E);
   static const Color surfaceMedium = Color(0xFF2A2A2A);
   static const Color surfaceLight = Color(0xFF363636);
-  
+
   // Text colors
   static const Color textPrimary = Color(0xFFFFFFFF);
   static const Color textSecondary = Color(0xFFB8B8B8);
   static const Color textTertiary = Color(0xFF808080);
   static const Color textDisabled = Color(0xFF4D4D4D);
-  
+
   // Border colors
   static const Color borderSubtle = Color(0xFF2A2A2A);
   static const Color borderMedium = Color(0xFF3D3D3D);
   static const Color borderStrong = Color(0xFF525252);
-  
+
   // Spacing system (8px base)
   static const double spaceXs = 4.0;
   static const double spaceSm = 8.0;
@@ -52,7 +52,7 @@ class AppTheme {
   static const double spaceXl = 32.0;
   static const double space2xl = 48.0;
   static const double space3xl = 64.0;
-  
+
   // Border radius
   static const double radiusXs = 4.0;
   static const double radiusSm = 8.0;
@@ -60,7 +60,7 @@ class AppTheme {
   static const double radiusLg = 16.0;
   static const double radiusXl = 24.0;
   static const double radiusFull = 9999.0;
-  
+
   // Elevation/Shadow
   static List<BoxShadow> get shadowSm => [
         BoxShadow(
@@ -69,7 +69,7 @@ class AppTheme {
           offset: const Offset(0, 2),
         ),
       ];
-  
+
   static List<BoxShadow> get shadowMd => [
         BoxShadow(
           color: Colors.black.withOpacity(0.15),
@@ -77,7 +77,7 @@ class AppTheme {
           offset: const Offset(0, 4),
         ),
       ];
-  
+
   static List<BoxShadow> get shadowLg => [
         BoxShadow(
           color: Colors.black.withOpacity(0.2),
@@ -85,7 +85,7 @@ class AppTheme {
           offset: const Offset(0, 8),
         ),
       ];
-  
+
   static List<BoxShadow> get shadowGlow => [
         BoxShadow(
           color: primaryPurple.withOpacity(0.3),
@@ -97,7 +97,7 @@ class AppTheme {
   // Typography
   static TextTheme get textTheme {
     final baseTheme = GoogleFonts.interTextTheme(ThemeData.dark().textTheme);
-    
+
     return baseTheme.copyWith(
       // Display styles
       displayLarge: baseTheme.displayLarge?.copyWith(
@@ -118,7 +118,7 @@ class AppTheme {
         letterSpacing: 0,
         color: textPrimary,
       ),
-      
+
       // Headline styles
       headlineLarge: baseTheme.headlineLarge?.copyWith(
         fontSize: 32,
@@ -138,7 +138,7 @@ class AppTheme {
         letterSpacing: 0,
         color: textPrimary,
       ),
-      
+
       // Title styles
       titleLarge: baseTheme.titleLarge?.copyWith(
         fontSize: 22,
@@ -158,7 +158,7 @@ class AppTheme {
         letterSpacing: 0.1,
         color: textPrimary,
       ),
-      
+
       // Body styles
       bodyLarge: baseTheme.bodyLarge?.copyWith(
         fontSize: 16,
@@ -178,7 +178,7 @@ class AppTheme {
         letterSpacing: 0.4,
         color: textTertiary,
       ),
-      
+
       // Label styles
       labelLarge: baseTheme.labelLarge?.copyWith(
         fontSize: 14,
@@ -206,7 +206,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      
+
       // Color scheme
       colorScheme: ColorScheme.dark(
         primary: primaryPurple,
@@ -221,12 +221,12 @@ class AppTheme {
         onSurface: textPrimary,
         onError: textPrimary,
       ),
-      
+
       scaffoldBackgroundColor: backgroundDark,
-      
+
       // Text theme
       textTheme: textTheme,
-      
+
       // App bar theme
       appBarTheme: AppBarTheme(
         backgroundColor: backgroundMedium,
@@ -235,7 +235,7 @@ class AppTheme {
         titleTextStyle: textTheme.titleLarge,
         iconTheme: const IconThemeData(color: textPrimary),
       ),
-      
+
       // Card theme
       cardTheme: CardThemeData(
         color: surfaceMedium,
@@ -245,7 +245,7 @@ class AppTheme {
           side: const BorderSide(color: borderSubtle, width: 1),
         ),
       ),
-      
+
       // Input decoration theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -271,13 +271,13 @@ class AppTheme {
           vertical: spaceMd,
         ),
       ),
-      
+
       // Icon theme
       iconTheme: const IconThemeData(
         color: textSecondary,
         size: 24,
       ),
-      
+
       // Divider theme
       dividerTheme: const DividerThemeData(
         color: borderSubtle,
@@ -287,4 +287,3 @@ class AppTheme {
     );
   }
 }
-

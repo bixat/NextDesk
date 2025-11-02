@@ -57,7 +57,7 @@ The application follows **separation of concerns** with a clean modular architec
 
 #### 2. **Services** (`lib/services/`)
    - `GeminiService`: Initializes and configures Gemini AI model with function calling
-   - `VisionService`: AI-powered UI element detection using Gemini Vision API
+   - `VisionService`: AI-powered UI element detection using Gemini or Qwen Vision API
    - `AutomationService`: Wrapper for all automation capabilities (mouse, keyboard, screen)
 
 #### 3. **Providers** (`lib/providers/`)
@@ -150,21 +150,42 @@ The AI can:
 
 ### 2. Computer Vision (UI Element Detection)
 
-The `VisionService` uses Gemini's vision capabilities to locate UI elements:
+The `VisionService` supports **two vision providers** for UI element detection:
 
+#### **Gemini Vision API** (Default)
+- Uses Google's Gemini 2.5 Flash model
+- Integrated with Google AI Studio
+- Fast and reliable for most use cases
+
+#### **Qwen Vision API** (Alternative)
+- Uses Alibaba Cloud's Qwen 2.5 VL 72B Instruct model
+- OpenAI-compatible API format
+- Provides image size detection and confidence scores
+- Configurable resolution parameters
+
+**How it works:**
 1. Takes a screenshot of the current screen
-2. Sends the image + element description to Gemini Vision
+2. Sends the image + element description to the selected vision API
 3. AI analyzes the image and returns pixel coordinates
 4. Returns a `DetectionResult` with x, y coordinates and confidence score
 
 Example:
 ```dart
-final result = await visionService.detectElement(
-  screenshot: imageBytes,
-  elementDescription: "blue Submit button",
+final result = await VisionService.detectElementPosition(
+  imageBytes,
+  "blue Submit button",
 );
 // Returns: {x: 450, y: 320, confidence: 0.95}
 ```
+
+**Switching Providers:**
+Edit `lib/config/app_config.dart`:
+```dart
+static const String visionProvider = 'qwen';  // or 'gemini'
+static const String qwenApiKey = 'sk-your-qwen-api-key';
+```
+
+See [QWEN_INTEGRATION.md](QWEN_INTEGRATION.md) for detailed setup instructions.
 
 ### 3. Input Automation
 
