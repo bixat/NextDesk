@@ -8,12 +8,16 @@ This Flutter desktop application combines AI reasoning with computer vision and 
 
 ## 📸 Screenshots
 
-### Thoughts Tab
-![ReAct Thoughts](reAct_thoughts.png)
+### Home Screen
+![Home Screen](home.png)
+*Main interface showing task history and quick actions*
+
+### Dashboard & Thoughts
+![Dashboard and Thoughts](task_details.png)
 *The AI's reasoning process displayed in real-time with numbered thought steps*
 
-### Actions Tab
-![ReAct Actions](reAct_actions.png)
+### Actions
+![Actions Log](tools_logs.png)
 *Execution log showing all function calls and their parameters*
 
 ## 🏗️ Project Structure
