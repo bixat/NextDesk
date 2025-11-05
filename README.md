@@ -1,10 +1,30 @@
-# ReAct AI Desktop Automation Agent
+# NextDesk
 
-An intelligent desktop automation application powered by Google's Gemini AI that uses the **ReAct (Reasoning + Acting)** framework to understand and execute complex computer tasks through natural language commands.
+**NextDesk** is an intelligent desktop automation application powered by Google's Gemini AI that uses the **ReAct (Reasoning + Acting)** framework to understand and execute complex computer tasks through natural language commands.
+
+> ⚠️ **UNDER ACTIVE DEVELOPMENT**
+> This project is currently in active development and **not ready for production use**.
+> The vision-based element detection tool (`detectElementPosition`) is particularly **unreliable and not recommended** for use at this time.
+> We recommend using keyboard shortcuts (`pressKeys`) and the `getShortcuts` tool instead for more reliable automation.
 
 ## 🌟 Overview
 
-This Flutter desktop application combines AI reasoning with computer vision and input control to automate desktop tasks. Simply describe what you want to do in natural language (e.g., "open Chrome and search for Flutter documentation"), and the AI agent will break it down into executable steps, reason about each action, and perform the automation.
+This Flutter desktop application combines AI reasoning with keyboard automation and input control to automate desktop tasks. Simply describe what you want to do in natural language (e.g., "open Chrome and search for Flutter documentation"), and the AI agent will break it down into executable steps, reason about each action, and perform the automation.
+
+## 🚧 Development Status
+
+| Feature                 | Status          | Notes                                        |
+| ----------------------- | --------------- | -------------------------------------------- |
+| **ReAct Framework**     | ✅ Working       | Core reasoning loop is functional            |
+| **Keyboard Automation** | ✅ Working       | Reliable keyboard shortcuts via `pressKeys`  |
+| **AI Shortcuts Tool**   | ✅ Working       | `getShortcuts` dynamically fetches shortcuts |
+| **Mouse Control**       | ✅ Working       | Basic mouse movement and clicks              |
+| **Screenshot Capture**  | ✅ Working       | Screen capture functionality                 |
+| **Vision Detection**    | ⚠️ **NOT READY** | Unreliable, not recommended for use          |
+| **User Interaction**    | ✅ Working       | Agent can ask user questions via dialog      |
+| **Task Persistence**    | ✅ Working       | Isar database for task history               |
+
+**Current Focus:** Improving vision detection accuracy and reliability.
 
 ## 📸 Screenshots
 
@@ -23,11 +43,12 @@ This Flutter desktop application combines AI reasoning with computer vision and 
 ## 🏗️ Project Structure
 
 ```
-desktop_agent/
+nextdesk/
 ├── lib/
-│   ├── main.dart                      # Application entry point (37 lines)
+│   ├── main.dart                      # Application entry point
 │   ├── config/
-│   │   └── app_theme.dart            # Centralized theme & design system
+│   │   ├── app_theme.dart            # Centralized theme & design system
+│   │   └── app_config.dart           # API keys and configuration
 │   ├── models/
 │   │   ├── task.dart                 # Task data model (Isar)
 │   │   ├── detection_result.dart     # UI element detection results
@@ -35,13 +56,15 @@ desktop_agent/
 │   ├── services/
 │   │   ├── gemini_service.dart       # Gemini AI model initialization
 │   │   ├── vision_service.dart       # AI-powered UI element detection
-│   │   └── automation_service.dart   # All automation functions
+│   │   ├── automation_service.dart   # All automation functions
+│   │   └── shortcuts_service.dart    # AI-powered keyboard shortcuts
 │   ├── providers/
 │   │   └── app_state.dart            # Main state management (Provider)
 │   ├── screens/
 │   │   └── main_screen.dart          # Main UI with responsive layout
 │   ├── widgets/
-│   │   └── task_card.dart            # Reusable task card widget
+│   │   ├── task_card.dart            # Reusable task card widget
+│   │   └── user_prompt_dialog.dart   # User interaction dialog
 │   └── main.g.dart                   # Generated Isar database code
 ├── macos/                             # macOS platform-specific code
 ├── windows/                           # Windows platform-specific code
@@ -260,7 +283,7 @@ class Task {
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd desktop_agent
+   cd nextdesk
    ```
 
 2. **Install dependencies**
@@ -401,15 +424,22 @@ The project follows a clean, modular architecture with clear separation of conce
 
 ## ⚠️ Known Limitations
 
-### Element Detection Accuracy
-The `detectElementPosition` function uses AI vision to locate UI elements, but it's **not always precise**:
-- **Accuracy varies**: Detection may be off by several pixels or fail entirely
-- **Complex UIs**: Elements in dense or overlapping layouts are harder to detect
-- **Similar elements**: May confuse similar-looking buttons or icons
-- **Recommendation**: Use keyboard shortcuts (`pressKeys`) whenever possible instead of relying on mouse clicks with element detection
-- **Workaround**: Provide very specific descriptions (e.g., "blue Submit button in bottom right corner" instead of just "Submit button")
+### ⚠️ Vision-Based Element Detection (NOT READY)
+The `detectElementPosition` function uses AI vision to locate UI elements, but it is **currently unreliable and NOT recommended for use**:
 
-This is a limitation of the current AI vision model and may improve with future updates.
+- **❌ Not Production Ready**: This feature is experimental and under active development
+- **❌ Accuracy Issues**: Detection may be off by several pixels or fail entirely
+- **❌ Inconsistent Results**: Same element may be detected differently across runs
+- **❌ Complex UIs**: Elements in dense or overlapping layouts are very difficult to detect
+- **❌ Similar Elements**: May confuse similar-looking buttons or icons
+- **❌ Performance**: Vision API calls are slow and may timeout
+
+**✅ RECOMMENDED APPROACH:**
+- **Use keyboard shortcuts** (`pressKeys`) whenever possible - much more reliable
+- **Use `getShortcuts` tool** to dynamically fetch keyboard shortcuts for applications
+- **Avoid vision-based detection** until this feature is stabilized in future releases
+
+This is a known limitation of the current implementation and AI vision models. We are actively working on improving this feature.
 
 ## 🐛 Troubleshooting
 

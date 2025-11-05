@@ -1,5 +1,5 @@
-name: ai_automation_app
-description: AI-powered automation app with Gemini
+name: nextdesk
+description: NextDesk - AI-powered desktop automation with ReAct framework
 publish_to: 'none'
 version: 1.0.0+1
 

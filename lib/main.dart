@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ReAct AI Automation',
+      title: 'NextDesk',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: const MainScreen(),
