@@ -28,19 +28,38 @@ class VisionService {
     try {
       final base64Image = base64Encode(imageBytes);
 
-      // System instruction for Qwen
+      // System instruction for Qwen with strict JSON schema
       final systemInstruction =
           '''You are an advanced AI assistant capable of analyzing images and extracting information based on user queries.
-Your task is to identify and provide the coordinates of specific UI elements within a given screenshot,
-You should be able to interpret descriptions of UI elements and map them accurately to their positions in the image.
+Your task is to identify and provide the coordinates of specific UI elements within a given screenshot.
 
-Focus on pixel-perfect accuracy and reliable element detection.
-Return the result as a JSON object with 'x', 'y' (integers), 'confidence' (float), and 'image_size' (object with 'width', 'height').
-If the element is not found, return x and y as null.''';
+CRITICAL: You MUST return ONLY valid JSON in this EXACT format:
+{
+  "x": <integer>,
+  "y": <integer>,
+  "confidence": <float between 0.0 and 1.0>,
+  "screenshot_description": <string>,
+  "image_size": {
+    "width": <integer>,
+    "height": <integer>
+  }
+}
+
+Rules:
+- x and y are integers representing pixel coordinates of the element's center
+- If element not found, set x and y to null
+- confidence is a float between 0.0 and 1.0
+- screenshot_description: Brief description of what you see in the screenshot
+  * If the requested element is found, describe its context
+  * If the requested element is NOT found but a similar element exists, explicitly mention both (e.g., "Screenshot shows App Store page with 'Update' button instead of requested 'Get' button, indicating app is already installed")
+  * If nothing similar exists, describe what is visible
+- image_size must contain the actual image dimensions
+- Do NOT include any text outside the JSON object
+- Do NOT use arrays or extra fields''';
 
       // User prompt
       final prompt =
-          'Locate the center of $elementDescription, output its (x,y) coordinates using JSON format';
+          'Locate the center pixel coordinates of: $elementDescription\n\nProvide a description of what you see, especially if the exact element is not found but a similar alternative exists.';
 
       // Calculate min and max pixels based on typical screen resolution
       final minPixels = (1920 / 2) * 28 * 28;
@@ -69,7 +88,54 @@ If the element is not found, return x and y as null.''';
             ]
           }
         ],
-        "response_format": {"type": "json_object"}
+        "response_format": {
+          "type": "json_schema",
+          "json_schema": {
+            "name": "element_coordinates",
+            "strict": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": ["integer", "null"],
+                  "description": "X coordinate of element center in pixels"
+                },
+                "y": {
+                  "type": ["integer", "null"],
+                  "description": "Y coordinate of element center in pixels"
+                },
+                "confidence": {
+                  "type": "number",
+                  "description": "Confidence score between 0.0 and 1.0",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                "screenshot_description": {
+                  "type": "string",
+                  "description":
+                      "Brief description of what is visible in the screenshot, especially mentioning if requested element was found or if similar alternative exists"
+                },
+                "image_size": {
+                  "type": "object",
+                  "properties": {
+                    "width": {"type": "integer"},
+                    "height": {"type": "integer"}
+                  },
+                  "required": ["width", "height"],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "x",
+                "y",
+                "confidence",
+                "screenshot_description",
+                "image_size"
+              ],
+              "additionalProperties": false
+            }
+          }
+        }
       };
 
       // Make API request
@@ -118,6 +184,8 @@ If the element is not found, return x and y as null.''';
         final xCoord = parsedResult['x'];
         final yCoord = parsedResult['y'];
         final confidence = parsedResult['confidence'];
+        final screenshotDesc =
+            parsedResult['screenshot_description'] as String?;
         final imageSize = parsedResult['image_size'];
 
         if (xCoord != null && yCoord != null) {
@@ -125,7 +193,7 @@ If the element is not found, return x and y as null.''';
             status: "success",
             x: xCoord is int ? xCoord : int.parse(xCoord.toString()),
             y: yCoord is int ? yCoord : int.parse(yCoord.toString()),
-            screenshotDescription: elementDescription,
+            screenshotDescription: screenshotDesc ?? elementDescription,
             confidence: confidence is double
                 ? confidence
                 : (confidence != null
@@ -145,6 +213,7 @@ If the element is not found, return x and y as null.''';
                 "Element not found by Qwen Vision API or coordinates are null",
             x: null,
             y: null,
+            screenshotDescription: screenshotDesc,
             confidence: 0.0,
             imageSize: imageSize != null
                 ? {
@@ -184,12 +253,14 @@ If the element is not found, return x and y as null.''';
       // Prepare the prompt
       final prompt = '''
 Analyze the provided screenshot.
-Find the center coordinates of the element described as: "$elementDescription".
-Return your answer ONLY as a JSON object with 'x' and 'y' keys.
-For example: {"x": 123, "y": 456, "image_description": "Short image description"}
+Find the center pixel coordinates of the element described as: "$elementDescription".
+
+Provide a brief description of what you see in the screenshot.
+If the exact element is not found but a similar alternative exists, explicitly mention both in the description.
+For example: "Screenshot shows App Store page with 'Update' button instead of requested 'Get' button, indicating app is already installed"
 ''';
 
-      // Prepare API request
+      // Prepare API request with response schema
       final requestBody = {
         "contents": [
           {
@@ -203,6 +274,44 @@ For example: {"x": 123, "y": 456, "image_description": "Short image description"
         ],
         "generationConfig": {
           "temperature": 0.5,
+          "responseMimeType": "application/json",
+          "responseSchema": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "integer",
+                "description": "X coordinate of element center in pixels"
+              },
+              "y": {
+                "type": "integer",
+                "description": "Y coordinate of element center in pixels"
+              },
+              "confidence": {
+                "type": "number",
+                "description": "Confidence score between 0.0 and 1.0"
+              },
+              "screenshot_description": {
+                "type": "string",
+                "description":
+                    "Brief description of what is visible in the screenshot, especially mentioning if requested element was found or if similar alternative exists"
+              },
+              "image_size": {
+                "type": "object",
+                "properties": {
+                  "width": {"type": "integer"},
+                  "height": {"type": "integer"}
+                },
+                "required": ["width", "height"]
+              }
+            },
+            "required": [
+              "x",
+              "y",
+              "confidence",
+              "screenshot_description",
+              "image_size"
+            ]
+          }
         },
         "safetySettings": [
           {
@@ -214,7 +323,7 @@ For example: {"x": 123, "y": 456, "image_description": "Short image description"
           "parts": [
             {
               "text":
-                  "You are an expert at analyzing UI elements in screenshots. Return coordinates as JSON only. Be precise with element identification."
+                  "You are an expert at analyzing UI elements in screenshots. Identify the exact center pixel coordinates of UI elements. Provide clear descriptions of what you see, especially when the requested element differs from what's actually present. Be precise with element identification."
             }
           ]
         }
@@ -277,14 +386,28 @@ For example: {"x": 123, "y": 456, "image_description": "Short image description"
         final parsedResult = jsonDecode(cleanText) as Map<String, dynamic>;
         final xCoord = parsedResult['x'];
         final yCoord = parsedResult['y'];
+        final confidence = parsedResult['confidence'];
+        final screenshotDesc =
+            parsedResult['screenshot_description'] as String?;
+        final imageSize = parsedResult['image_size'];
 
         if (xCoord != null && yCoord != null) {
           return DetectionResult(
             status: "success",
             x: xCoord is int ? xCoord : int.parse(xCoord.toString()),
             y: yCoord is int ? yCoord : int.parse(yCoord.toString()),
-            screenshotDescription: elementDescription,
-            confidence: 0.9, // Default confidence
+            screenshotDescription: screenshotDesc ?? elementDescription,
+            confidence: confidence is double
+                ? confidence
+                : (confidence != null
+                    ? double.parse(confidence.toString())
+                    : 0.9),
+            imageSize: imageSize != null
+                ? {
+                    'width': imageSize['width'] as int,
+                    'height': imageSize['height'] as int,
+                  }
+                : null,
           );
         } else {
           return DetectionResult(
@@ -293,7 +416,14 @@ For example: {"x": 123, "y": 456, "image_description": "Short image description"
                 "Element not found by Gemini Vision API or coordinates are null",
             x: null,
             y: null,
+            screenshotDescription: screenshotDesc,
             confidence: 0.0,
+            imageSize: imageSize != null
+                ? {
+                    'width': imageSize['width'] as int,
+                    'height': imageSize['height'] as int,
+                  }
+                : null,
           );
         }
       } catch (jsonError) {

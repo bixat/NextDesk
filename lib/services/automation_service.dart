@@ -3,6 +3,7 @@ import 'package:bixat_key_mouse/bixat_key_mouse.dart';
 import 'package:screen_capturer/screen_capturer.dart';
 import 'package:image/image.dart' as img;
 import 'vision_service.dart';
+import 'shortcuts_service.dart';
 
 /// Automation Functions that will be called by Gemini
 class AutomationService {
@@ -10,10 +11,12 @@ class AutomationService {
   Uint8List? lastScreenshot;
   final Function(String) onStatusUpdate;
   final Function() onScreenshotTaken;
+  final Future<String> Function(String question)? onUserPrompt;
 
   AutomationService({
     required this.onStatusUpdate,
     required this.onScreenshotTaken,
+    this.onUserPrompt,
   });
 
   // Capture screenshot function
@@ -217,6 +220,69 @@ class AutomationService {
       return {
         'success': false,
         'message': 'Error waiting: $e',
+      };
+    }
+  }
+
+  // Get keyboard shortcuts function
+  Future<Map<String, dynamic>> getShortcuts({required String query}) async {
+    try {
+      onStatusUpdate('Fetching shortcuts for: $query');
+      final result = await ShortcutsService.getShortcuts(query: query);
+
+      if (result['success'] == true) {
+        final shortcuts = result['shortcuts'] as List;
+        final formattedShortcuts = shortcuts.map((s) {
+          return '${s['description']}: ${s['keys']}${s['example'] != null ? ' (${s['example']})' : ''}';
+        }).join('\n');
+
+        return {
+          'success': true,
+          'message': 'Found ${shortcuts.length} shortcuts',
+          'shortcuts': shortcuts,
+          'formatted': formattedShortcuts,
+          'provider': result['provider'],
+        };
+      }
+
+      return result;
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error getting shortcuts: $e',
+        'shortcuts': [],
+      };
+    }
+  }
+
+  /// Asks the user a question and waits for their response
+  /// This pauses automation until the user provides input
+  Future<Map<String, dynamic>> askUser({required String question}) async {
+    try {
+      onStatusUpdate('Waiting for user input: $question');
+
+      if (onUserPrompt == null) {
+        return {
+          'success': false,
+          'message': 'User interaction not available',
+          'user_response': null,
+        };
+      }
+
+      // Wait for user response
+      final userResponse = await onUserPrompt!(question);
+
+      return {
+        'success': true,
+        'message': 'User responded',
+        'user_response': userResponse,
+        'question': question,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error asking user: $e',
+        'user_response': null,
       };
     }
   }

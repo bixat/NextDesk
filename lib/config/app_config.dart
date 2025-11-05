@@ -5,14 +5,18 @@
 class AppConfig {
   /// Gemini API Key
   /// Get your API key from: https://makersuite.google.com/app/apikey
-  static const String geminiApiKey = 'AIzaSyCqF8yEv4MwA_rp6vzdUckXMt0qGHRg6X4';
+  static const String geminiApiKey = 'YOUR_GEMINI_API_KEY_HERE';
 
   /// Qwen API Key (Dashscope)
   /// Get your API key from: https://dashscope.console.aliyun.com/
-  static const String qwenApiKey = 'sk-dedc60e827f94b66b2964ee43377cdb8';
+  static const String qwenApiKey = 'YOUR_QWEN_API_KEY_HERE';
 
   /// Vision provider: 'gemini' or 'qwen'
   static const String visionProvider = 'qwen';
+
+  /// Shortcuts provider: 'gemini' or 'qwen'
+  /// Used by getShortcuts tool to fetch keyboard shortcuts
+  static const String shortcutsProvider = 'qwen';
 
   /// Maximum iterations for ReAct agent
   static const int maxIterations = 20;

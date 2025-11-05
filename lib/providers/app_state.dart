@@ -25,6 +25,26 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> executionLog = [];
   List<String> thoughtLog = [];
 
+  // User prompt handling
+  Future<String> Function(String question)? _userPromptCallback;
+
+  void setUserPromptCallback(
+      Future<String> Function(String question) callback) {
+    _userPromptCallback = callback;
+    // Update automation service with the callback
+    _automationService = AutomationService(
+      onStatusUpdate: (msg) {
+        status = msg;
+        notifyListeners();
+      },
+      onScreenshotTaken: () {
+        lastScreenshot = _automationService.lastScreenshot;
+        notifyListeners();
+      },
+      onUserPrompt: _userPromptCallback,
+    );
+  }
+
   AppState() {
     _automationService = AutomationService(
       onStatusUpdate: (msg) {
@@ -35,6 +55,7 @@ class AppState extends ChangeNotifier {
         lastScreenshot = _automationService.lastScreenshot;
         notifyListeners();
       },
+      onUserPrompt: _userPromptCallback,
     );
     _initializeServices();
   }
@@ -84,7 +105,16 @@ class AppState extends ChangeNotifier {
       final systemPrompt = GeminiService.getReActSystemPrompt(input);
 
       // Send initial message
-      var response = await chat.sendMessage(Content.text(systemPrompt));
+      GenerateContentResponse response;
+      try {
+        response = await chat.sendMessage(Content.text(systemPrompt));
+      } catch (e) {
+        status = 'Error sending initial message: $e';
+        print('Error sending initial message: $e');
+        notifyListeners();
+        isExecuting = false;
+        return;
+      }
       _agentState.iterationCount = 1;
 
       // ReAct loop
@@ -92,7 +122,32 @@ class AppState extends ChangeNotifier {
 
       while (_agentState.iterationCount <= maxIterations) {
         // Parse the response for ReAct components
-        final responseText = response.text ?? '';
+        String responseText = '';
+        try {
+          // Try to get text from response
+          if (response.text != null && response.text!.isNotEmpty) {
+            responseText = response.text!;
+          } else if (response.functionCalls.isNotEmpty) {
+            // If no text but has function calls, that's expected
+            responseText = 'ACTION: Function call detected';
+          } else {
+            // No text and no function calls - might be an error
+            print('Warning: Response has no text or function calls');
+            responseText = '';
+          }
+        } catch (e) {
+          // Handle cases where response.text throws an error
+          print('Warning: Could not get response.text: $e');
+          print('Response type: ${response.runtimeType}');
+          // Check if there are function calls instead
+          if (response.functionCalls.isNotEmpty) {
+            responseText = 'ACTION: Function call detected';
+          } else {
+            // Try to continue anyway
+            responseText = '';
+          }
+        }
+
         _parseReActResponse(responseText);
 
         // Store the thought
@@ -107,9 +162,8 @@ class AppState extends ChangeNotifier {
 
         // Check if task is complete
         if (_agentState.currentThought
-                .toLowerCase()
-                .contains('task complete') ||
-            _agentState.currentThought.toLowerCase().contains('completed')) {
+            .toUpperCase()
+            .contains('TASK COMPLETE')) {
           break;
         }
 
@@ -136,18 +190,32 @@ class AppState extends ChangeNotifier {
             print('Function result: $result');
 
             // Send observation back to continue ReAct cycle
-            response = await chat.sendMessage(
-              Content.functionResponses([
-                FunctionResponse(functionCall.name, result),
-              ]),
-            );
+            try {
+              response = await chat.sendMessage(
+                Content.functionResponses([
+                  FunctionResponse(functionCall.name, result),
+                ]),
+              );
+            } catch (e) {
+              print('Error sending function response: $e');
+              status = 'Error in ReAct loop: $e';
+              notifyListeners();
+              break;
+            }
           }
         } else {
           // If no function call, ask for next step with observation
-          response = await chat.sendMessage(
-            Content.text(
-                'OBSERVATION: No action taken. Please provide your next THOUGHT and ACTION.'),
-          );
+          try {
+            response = await chat.sendMessage(
+              Content.text(
+                  'OBSERVATION: No action taken. Please provide your next THOUGHT and ACTION.'),
+            );
+          } catch (e) {
+            print('Error sending text message: $e');
+            status = 'Error in ReAct loop: $e';
+            notifyListeners();
+            break;
+          }
         }
 
         _agentState.iterationCount++;
@@ -191,26 +259,28 @@ class AppState extends ChangeNotifier {
   }
 
   void _parseReActResponse(String response) {
-    // Parse THOUGHT, ACTION, and OBSERVATION from response
-    final thoughtMatch = RegExp(r'THOUGHT:\s*(.*?)(?=ACTION:|OBSERVATION:|$)',
-            caseSensitive: false, dotAll: true)
-        .firstMatch(response);
-    final actionMatch = RegExp(r'ACTION:\s*(.*?)(?=OBSERVATION:|THOUGHT:|$)',
-            caseSensitive: false, dotAll: true)
-        .firstMatch(response);
-    final observationMatch = RegExp(
-            r'OBSERVATION:\s*(.*?)(?=THOUGHT:|ACTION:|$)',
-            caseSensitive: false,
-            dotAll: true)
-        .firstMatch(response);
+    // Parse THOUGHT from response text
+    // Gemini with function calling returns plain text, not JSON
 
-    _agentState.currentThought = thoughtMatch?.group(1)?.trim() ?? '';
-    _agentState.nextAction = actionMatch?.group(1)?.trim() ?? '';
+    // Try to extract THOUGHT: ... pattern
+    final thoughtMatch = RegExp(
+      r'THOUGHT:\s*(.+?)(?=\n|$)',
+      caseSensitive: false,
+      multiLine: true,
+    ).firstMatch(response);
 
-    if (observationMatch != null) {
-      _agentState.lastObservation = observationMatch.group(1)?.trim() ?? '';
+    if (thoughtMatch != null) {
+      _agentState.currentThought = thoughtMatch.group(1)?.trim() ?? '';
+    } else {
+      // If no THOUGHT: prefix, use the whole response (up to 200 chars)
+      _agentState.currentThought = response.isNotEmpty
+          ? response
+              .substring(0, response.length > 200 ? 200 : response.length)
+              .trim()
+          : 'Processing...';
     }
 
+    _agentState.nextAction = ''; // Action is determined by function calls
     _agentState.isReasoning = _agentState.currentThought.isNotEmpty;
   }
 
@@ -249,6 +319,16 @@ class AppState extends ChangeNotifier {
         case 'wait':
           return await _automationService.wait(
             seconds: (call.args['seconds'] as num).toDouble(),
+          );
+
+        case 'getShortcuts':
+          return await _automationService.getShortcuts(
+            query: call.args['query'] as String,
+          );
+
+        case 'askUser':
+          return await _automationService.askUser(
+            question: call.args['question'] as String,
           );
 
         default:

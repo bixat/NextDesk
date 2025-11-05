@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/app_state.dart';
 import '../widgets/task_card.dart';
+import '../widgets/user_prompt_dialog.dart';
 import '../config/app_theme.dart';
 
 class MainScreen extends StatefulWidget {
@@ -15,6 +16,18 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   final _controller = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    // Set up user prompt callback
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = Provider.of<AppState>(context, listen: false);
+      appState.setUserPromptCallback(
+        (question) => UserPromptDialog.show(context, question),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
