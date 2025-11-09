@@ -22,6 +22,8 @@ class AppState extends ChangeNotifier {
   Task? currentTask;
   String? currentStep;
   bool isExecuting = false;
+  bool isPaused = false;
+  bool shouldStop = false;
   Uint8List? lastScreenshot;
   String status = 'Ready';
   List<Map<String, dynamic>> executionLog = [];
@@ -138,6 +140,8 @@ class AppState extends ChangeNotifier {
     }
 
     isExecuting = true;
+    isPaused = false;
+    shouldStop = false;
     status = 'Starting ReAct agent reasoning...';
     _agentState.reset();
     thoughtLog.clear();
@@ -176,6 +180,25 @@ class AppState extends ChangeNotifier {
       final int maxIterations = config?.maxIterations ?? 30;
 
       while (_agentState.iterationCount <= maxIterations) {
+        // Check for stop signal
+        if (shouldStop) {
+          status = 'Execution stopped by user';
+          break;
+        }
+
+        // Check for pause signal
+        while (isPaused && !shouldStop) {
+          status = 'Execution paused';
+          notifyListeners();
+          await Future.delayed(Duration(milliseconds: 500));
+        }
+
+        // Check again after pause
+        if (shouldStop) {
+          status = 'Execution stopped by user';
+          break;
+        }
+
         // Parse the response for ReAct components
         String responseText = '';
         try {
@@ -230,19 +253,20 @@ class AppState extends ChangeNotifier {
                 '${functionCall.name}(${jsonEncode(functionCall.args)})';
             notifyListeners();
 
-            // Log the execution
-            executionLog.add({
-              'function': functionCall.name,
-              'args': functionCall.args,
-              'timestamp': DateTime.now().toIso8601String(),
-              'thought': _agentState.currentThought,
-            });
-            print(functionCall.toJson());
-
             // Execute the function
             final result = await _executeFunction(functionCall);
             _agentState.lastObservation = jsonEncode(result);
             print('Function result: $result');
+
+            // Log the execution with response
+            executionLog.add({
+              'function': functionCall.name,
+              'args': functionCall.args,
+              'response': result,
+              'timestamp': DateTime.now().toIso8601String(),
+              'thought': _agentState.currentThought,
+            });
+            print(functionCall.toJson());
 
             // Send observation back to continue ReAct cycle
             try {
@@ -411,6 +435,34 @@ class AppState extends ChangeNotifier {
   /// Re-run a task with the same prompt
   Future<void> rerunTask(Task task) async {
     await processUserInput(task.prompt);
+  }
+
+  /// Pause the current execution
+  void pauseExecution() {
+    if (isExecuting && !isPaused) {
+      isPaused = true;
+      status = 'Execution paused';
+      notifyListeners();
+    }
+  }
+
+  /// Resume the paused execution
+  void resumeExecution() {
+    if (isExecuting && isPaused) {
+      isPaused = false;
+      status = 'Execution resumed';
+      notifyListeners();
+    }
+  }
+
+  /// Stop the current execution
+  void stopExecution() {
+    if (isExecuting) {
+      shouldStop = true;
+      isPaused = false;
+      status = 'Stopping execution...';
+      notifyListeners();
+    }
   }
 
   // Getters

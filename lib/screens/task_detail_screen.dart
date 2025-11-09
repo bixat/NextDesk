@@ -6,10 +6,17 @@ import '../models/task.dart';
 import '../config/app_theme.dart';
 import '../providers/app_state.dart';
 
-class TaskDetailScreen extends StatelessWidget {
+class TaskDetailScreen extends StatefulWidget {
   final Task task;
 
   const TaskDetailScreen({super.key, required this.task});
+
+  @override
+  State<TaskDetailScreen> createState() => _TaskDetailScreenState();
+}
+
+class _TaskDetailScreenState extends State<TaskDetailScreen> {
+  final Set<int> _expandedSteps = {};
 
   @override
   Widget build(BuildContext context) {
@@ -62,11 +69,11 @@ class TaskDetailScreen extends StatelessWidget {
             const SizedBox(height: AppTheme.spaceLg),
 
             // Thoughts Section
-            if (task.thoughts.isNotEmpty) ...[
+            if (widget.task.thoughts.isNotEmpty) ...[
               _buildSectionHeader(
                 icon: Icons.psychology_outlined,
                 title: 'Thoughts',
-                subtitle: '${task.thoughts.length} reasoning steps',
+                subtitle: '${widget.task.thoughts.length} reasoning steps',
                 color: AppTheme.primaryPurple,
               ),
               const SizedBox(height: AppTheme.spaceMd),
@@ -75,11 +82,11 @@ class TaskDetailScreen extends StatelessWidget {
             ],
 
             // Steps/Actions Section
-            if (task.steps.isNotEmpty) ...[
+            if (widget.task.steps.isNotEmpty) ...[
               _buildSectionHeader(
                 icon: Icons.play_circle_outline_rounded,
                 title: 'Execution Steps',
-                subtitle: '${task.steps.length} actions performed',
+                subtitle: '${widget.task.steps.length} actions performed',
                 color: AppTheme.secondaryBlue,
               ),
               const SizedBox(height: AppTheme.spaceMd),
@@ -88,7 +95,7 @@ class TaskDetailScreen extends StatelessWidget {
             ],
 
             // Empty state if no data
-            if (task.thoughts.isEmpty && task.steps.isEmpty) ...[
+            if (widget.task.thoughts.isEmpty && widget.task.steps.isEmpty) ...[
               _buildEmptyState(),
             ],
           ],
@@ -104,9 +111,9 @@ class TaskDetailScreen extends StatelessWidget {
         color: AppTheme.surfaceMedium,
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         border: Border.all(
-          color: task.isCompleted
+          color: widget.task.isCompleted
               ? AppTheme.accentGreen.withOpacity(0.5)
-              : task.isFailed
+              : widget.task.isFailed
                   ? AppTheme.errorRed.withOpacity(0.5)
                   : AppTheme.borderMedium,
           width: 2,
@@ -125,16 +132,16 @@ class TaskDetailScreen extends StatelessWidget {
                   vertical: AppTheme.spaceSm,
                 ),
                 decoration: BoxDecoration(
-                  color: task.isCompleted
+                  color: widget.task.isCompleted
                       ? AppTheme.accentGreen.withOpacity(0.15)
-                      : task.isFailed
+                      : widget.task.isFailed
                           ? AppTheme.errorRed.withOpacity(0.15)
                           : AppTheme.warningOrange.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(AppTheme.radiusFull),
                   border: Border.all(
-                    color: task.isCompleted
+                    color: widget.task.isCompleted
                         ? AppTheme.accentGreen
-                        : task.isFailed
+                        : widget.task.isFailed
                             ? AppTheme.errorRed
                             : AppTheme.warningOrange,
                     width: 1.5,
@@ -144,29 +151,29 @@ class TaskDetailScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      task.isCompleted
+                      widget.task.isCompleted
                           ? Icons.check_circle_rounded
-                          : task.isFailed
+                          : widget.task.isFailed
                               ? Icons.error_rounded
                               : Icons.pending_rounded,
                       size: 16,
-                      color: task.isCompleted
+                      color: widget.task.isCompleted
                           ? AppTheme.accentGreen
-                          : task.isFailed
+                          : widget.task.isFailed
                               ? AppTheme.errorRed
                               : AppTheme.warningOrange,
                     ),
                     const SizedBox(width: AppTheme.spaceXs),
                     Text(
-                      task.isCompleted
+                      widget.task.isCompleted
                           ? 'Completed'
-                          : task.isFailed
+                          : widget.task.isFailed
                               ? 'Failed'
                               : 'Pending',
                       style: theme.textTheme.labelMedium?.copyWith(
-                        color: task.isCompleted
+                        color: widget.task.isCompleted
                             ? AppTheme.accentGreen
-                            : task.isFailed
+                            : widget.task.isFailed
                                 ? AppTheme.errorRed
                                 : AppTheme.warningOrange,
                         fontWeight: FontWeight.w600,
@@ -183,7 +190,7 @@ class TaskDetailScreen extends StatelessWidget {
               ),
               const SizedBox(width: AppTheme.spaceXs),
               Text(
-                _formatDateTime(task.createdAt),
+                _formatDateTime(widget.task.createdAt),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: AppTheme.textTertiary,
                 ),
@@ -202,7 +209,7 @@ class TaskDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.spaceSm),
           Text(
-            task.prompt,
+            widget.task.prompt,
             style: theme.textTheme.titleLarge?.copyWith(
               color: AppTheme.textPrimary,
               height: 1.4,
@@ -216,14 +223,14 @@ class TaskDetailScreen extends StatelessWidget {
               _buildMetric(
                 icon: Icons.psychology_outlined,
                 label: 'Thoughts',
-                value: '${task.thoughts.length}',
+                value: '${widget.task.thoughts.length}',
                 color: AppTheme.primaryPurple,
               ),
               const SizedBox(width: AppTheme.spaceMd),
               _buildMetric(
                 icon: Icons.play_circle_outline_rounded,
                 label: 'Actions',
-                value: '${task.steps.length}',
+                value: '${widget.task.steps.length}',
                 color: AppTheme.secondaryBlue,
               ),
             ],
@@ -429,7 +436,7 @@ class TaskDetailScreen extends StatelessWidget {
   Widget _buildThoughtsList() {
     return Column(
       children: List.generate(
-        task.thoughts.length,
+        widget.task.thoughts.length,
         (index) => Container(
           margin: const EdgeInsets.only(bottom: AppTheme.spaceMd),
           padding: const EdgeInsets.all(AppTheme.spaceMd),
@@ -465,7 +472,7 @@ class TaskDetailScreen extends StatelessWidget {
               const SizedBox(width: AppTheme.spaceMd),
               Expanded(
                 child: Text(
-                  task.thoughts[index],
+                  widget.task.thoughts[index],
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
@@ -487,88 +494,198 @@ class TaskDetailScreen extends StatelessWidget {
   Widget _buildStepsList() {
     return Column(
       children: List.generate(
-        task.steps.length,
+        widget.task.steps.length,
         (index) {
           Map<String, dynamic> step = {};
           try {
-            step = jsonDecode(task.steps[index]);
+            step = jsonDecode(widget.task.steps[index]);
           } catch (e) {
             step = {'function': 'Unknown', 'args': {}};
           }
 
+          final isExpanded = _expandedSteps.contains(index);
+          final hasArgs =
+              step['args'] != null && (step['args'] as Map).isNotEmpty;
+          final hasResponse = step['response'] != null;
+
           return Container(
             margin: const EdgeInsets.only(bottom: AppTheme.spaceMd),
-            padding: const EdgeInsets.all(AppTheme.spaceMd),
             decoration: BoxDecoration(
               color: AppTheme.surfaceMedium,
               borderRadius: BorderRadius.circular(AppTheme.radiusMd),
               border: Border.all(
-                color: AppTheme.secondaryBlue.withOpacity(0.3),
-                width: 1,
+                color: isExpanded
+                    ? AppTheme.primaryPurple
+                    : AppTheme.secondaryBlue.withOpacity(0.3),
+                width: isExpanded ? 2 : 1,
               ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppTheme.secondaryBlue.withOpacity(0.15),
-                        borderRadius:
-                            BorderRadius.circular(AppTheme.radiusFull),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${index + 1}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.secondaryBlue,
+                // Header - Always visible
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (isExpanded) {
+                        _expandedSteps.remove(index);
+                      } else {
+                        _expandedSteps.add(index);
+                      }
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppTheme.spaceMd),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: AppTheme.secondaryBlue.withOpacity(0.15),
+                            borderRadius:
+                                BorderRadius.circular(AppTheme.radiusFull),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${index + 1}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.secondaryBlue,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: AppTheme.spaceMd),
-                    Expanded(
-                      child: Text(
-                        step['function'] ?? 'Unknown',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                        const SizedBox(width: AppTheme.spaceMd),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                step['function'] ?? 'Unknown',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.textPrimary,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                              if (step['timestamp'] != null)
+                                Text(
+                                  _formatTime(
+                                      DateTime.parse(step['timestamp'])),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppTheme.textTertiary,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ),
-                    if (step['timestamp'] != null)
-                      Text(
-                        _formatTime(DateTime.parse(step['timestamp'])),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
+                        Icon(
+                          isExpanded
+                              ? Icons.expand_less_rounded
+                              : Icons.expand_more_rounded,
+                          size: 24,
                           color: AppTheme.textTertiary,
                         ),
-                      ),
-                  ],
-                ),
-                if (step['args'] != null &&
-                    (step['args'] as Map).isNotEmpty) ...[
-                  const SizedBox(height: AppTheme.spaceSm),
-                  Container(
-                    padding: const EdgeInsets.all(AppTheme.spaceSm),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceDark,
-                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      ],
                     ),
-                    child: Text(
-                      jsonEncode(step['args']),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                        color: AppTheme.textSecondary,
-                      ),
+                  ),
+                ),
+                // Expanded content
+                if (isExpanded) ...[
+                  const Divider(height: 1, color: AppTheme.borderSubtle),
+                  Padding(
+                    padding: const EdgeInsets.all(AppTheme.spaceMd),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Parameters
+                        if (hasArgs) ...[
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.input_rounded,
+                                size: 16,
+                                color: AppTheme.primaryPurple,
+                              ),
+                              const SizedBox(width: AppTheme.spaceXs),
+                              Text(
+                                'Parameters',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.primaryPurple,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppTheme.spaceSm),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(AppTheme.spaceSm),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceDark,
+                              borderRadius:
+                                  BorderRadius.circular(AppTheme.radiusSm),
+                            ),
+                            child: Text(
+                              _formatJson(step['args']),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontFamily: 'monospace',
+                                color: AppTheme.textSecondary,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                        // Response
+                        if (hasResponse) ...[
+                          if (hasArgs) const SizedBox(height: AppTheme.spaceMd),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.output_rounded,
+                                size: 16,
+                                color: AppTheme.accentGreen,
+                              ),
+                              const SizedBox(width: AppTheme.spaceXs),
+                              Text(
+                                'Response',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.accentGreen,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppTheme.spaceSm),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(AppTheme.spaceSm),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceDark,
+                              borderRadius:
+                                  BorderRadius.circular(AppTheme.radiusSm),
+                            ),
+                            child: Text(
+                              _formatResponse(step['response']),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontFamily: 'monospace',
+                                color: AppTheme.textSecondary,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ],
@@ -646,7 +763,7 @@ class TaskDetailScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               final appState = Provider.of<AppState>(context, listen: false);
-              appState.deleteTask(task.id);
+              appState.deleteTask(widget.task.id);
               Navigator.pop(context); // Close dialog
               Navigator.pop(context); // Close detail screen
             },
@@ -677,7 +794,7 @@ class TaskDetailScreen extends StatelessWidget {
           ],
         ),
         content: Text(
-          'This will execute the task again with the same prompt: "${task.prompt}"',
+          'This will execute the task again with the same prompt: "${widget.task.prompt}"',
           style: TextStyle(color: AppTheme.textSecondary),
         ),
         actions: [
@@ -688,7 +805,7 @@ class TaskDetailScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               final appState = Provider.of<AppState>(context, listen: false);
-              appState.rerunTask(task);
+              appState.rerunTask(widget.task);
               Navigator.pop(context); // Close dialog
               Navigator.pop(context); // Close detail screen
               ScaffoldMessenger.of(context).showSnackBar(
@@ -711,7 +828,7 @@ class TaskDetailScreen extends StatelessWidget {
 
   void _duplicateTask(BuildContext context) {
     final appState = Provider.of<AppState>(context, listen: false);
-    appState.rerunTask(task);
+    appState.rerunTask(widget.task);
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -747,5 +864,21 @@ class TaskDetailScreen extends StatelessWidget {
     final hour = time.hour.toString().padLeft(2, '0');
     final minute = time.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+
+  String _formatJson(dynamic data) {
+    if (data == null) return 'null';
+    try {
+      final encoder = JsonEncoder.withIndent('  ');
+      return encoder.convert(data);
+    } catch (e) {
+      return data.toString();
+    }
+  }
+
+  String _formatResponse(dynamic response) {
+    if (response == null) return 'null';
+    if (response is String) return response;
+    return _formatJson(response);
   }
 }

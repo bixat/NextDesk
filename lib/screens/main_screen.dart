@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -18,6 +19,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   final _controller = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final Set<int> _expandedActions = {};
 
   @override
   void initState() {
@@ -405,7 +407,50 @@ class _MainScreenState extends State<MainScreen> {
                     ],
                   ),
                 ),
-                if (state.agentState.isReasoning)
+                // Pause/Resume button
+                if (state.isExecuting) ...[
+                  IconButton(
+                    onPressed: () {
+                      if (state.isPaused) {
+                        state.resumeExecution();
+                      } else {
+                        state.pauseExecution();
+                      }
+                    },
+                    icon: Icon(
+                      state.isPaused
+                          ? Icons.play_arrow_rounded
+                          : Icons.pause_rounded,
+                      color: state.isPaused
+                          ? AppTheme.accentGreen
+                          : AppTheme.warningOrange,
+                    ),
+                    tooltip: state.isPaused ? 'Resume' : 'Pause',
+                    style: IconButton.styleFrom(
+                      backgroundColor: (state.isPaused
+                              ? AppTheme.accentGreen
+                              : AppTheme.warningOrange)
+                          .withOpacity(0.15),
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spaceXs),
+                  // Stop button
+                  IconButton(
+                    onPressed: () {
+                      state.stopExecution();
+                    },
+                    icon: const Icon(
+                      Icons.stop_rounded,
+                      color: AppTheme.errorRed,
+                    ),
+                    tooltip: 'Stop',
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppTheme.errorRed.withOpacity(0.15),
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spaceXs),
+                ],
+                if (state.agentState.isReasoning && !state.isPaused)
                   Container(
                     padding: const EdgeInsets.all(AppTheme.spaceSm),
                     decoration: BoxDecoration(
@@ -694,53 +739,13 @@ class _MainScreenState extends State<MainScreen> {
                                     itemCount: state.executionLog.length,
                                     itemBuilder: (context, index) {
                                       final log = state.executionLog[index];
-                                      return Container(
-                                        margin: const EdgeInsets.only(
-                                            bottom: AppTheme.spaceXs),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: AppTheme.spaceMd,
-                                          vertical: AppTheme.spaceSm,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.surfaceMedium,
-                                          borderRadius: BorderRadius.circular(
-                                              AppTheme.radiusSm),
-                                          border: Border.all(
-                                            color: AppTheme.borderSubtle,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(4),
-                                              decoration: BoxDecoration(
-                                                color: AppTheme.secondaryBlue
-                                                    .withOpacity(0.15),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Icon(
-                                                Icons.play_arrow_rounded,
-                                                size: 12,
-                                                color: AppTheme.secondaryBlue,
-                                              ),
-                                            ),
-                                            const SizedBox(
-                                                width: AppTheme.spaceMd),
-                                            Expanded(
-                                              child: Text(
-                                                '${log['function']}(${_formatArgs(log['args'])})',
-                                                style: theme.textTheme.bodySmall
-                                                    ?.copyWith(
-                                                  color: AppTheme.textSecondary,
-                                                  fontFamily: 'monospace',
-                                                  fontSize: 11,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                      final isExpanded =
+                                          _expandedActions.contains(index);
+                                      return _buildActionLogItem(
+                                        log: log,
+                                        index: index,
+                                        isExpanded: isExpanded,
+                                        theme: theme,
                                       ).animate().fadeIn(
                                           duration: 200.ms,
                                           delay: (index * 30).ms);
@@ -932,8 +937,211 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  Widget _buildActionLogItem({
+    required Map<String, dynamic> log,
+    required int index,
+    required bool isExpanded,
+    required ThemeData theme,
+  }) {
+    final hasArgs = log['args'] != null && (log['args'] as Map).isNotEmpty;
+    final hasResponse = log['response'] != null;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppTheme.spaceSm),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceMedium,
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        border: Border.all(
+          color: isExpanded ? AppTheme.primaryPurple : AppTheme.borderSubtle,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header - Always visible
+          InkWell(
+            onTap: () {
+              setState(() {
+                if (isExpanded) {
+                  _expandedActions.remove(index);
+                } else {
+                  _expandedActions.add(index);
+                }
+              });
+            },
+            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            child: Padding(
+              padding: const EdgeInsets.all(AppTheme.spaceSm),
+              child: Row(
+                children: [
+                  // Action icon
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondaryBlue.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      size: 14,
+                      color: AppTheme.secondaryBlue,
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spaceSm),
+                  // Function name
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          log['function'] ?? 'Unknown',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                        if (!isExpanded && hasArgs)
+                          Text(
+                            _formatArgs(log['args']),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textTertiary,
+                              fontFamily: 'monospace',
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
+                    ),
+                  ),
+                  // Expand icon
+                  Icon(
+                    isExpanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    size: 20,
+                    color: AppTheme.textTertiary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Expanded content
+          if (isExpanded) ...[
+            const Divider(height: 1, color: AppTheme.borderSubtle),
+            Padding(
+              padding: const EdgeInsets.all(AppTheme.spaceSm),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Parameters
+                  if (hasArgs) ...[
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.input_rounded,
+                          size: 14,
+                          color: AppTheme.primaryPurple,
+                        ),
+                        const SizedBox(width: AppTheme.spaceXs),
+                        Text(
+                          'Parameters',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primaryPurple,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppTheme.spaceXs),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppTheme.spaceSm),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceDark,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      ),
+                      child: Text(
+                        _formatJson(log['args']),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          color: AppTheme.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                  // Response
+                  if (hasResponse) ...[
+                    if (hasArgs) const SizedBox(height: AppTheme.spaceSm),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.output_rounded,
+                          size: 14,
+                          color: AppTheme.accentGreen,
+                        ),
+                        const SizedBox(width: AppTheme.spaceXs),
+                        Text(
+                          'Response',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.accentGreen,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppTheme.spaceXs),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppTheme.spaceSm),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceDark,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      ),
+                      child: Text(
+                        _formatResponse(log['response']),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          color: AppTheme.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   String _formatArgs(Map<String, dynamic>? args) {
     if (args == null || args.isEmpty) return '';
     return args.entries.map((e) => '${e.key}: ${e.value}').join(', ');
+  }
+
+  String _formatJson(dynamic data) {
+    if (data == null) return 'null';
+    try {
+      final encoder = JsonEncoder.withIndent('  ');
+      return encoder.convert(data);
+    } catch (e) {
+      return data.toString();
+    }
+  }
+
+  String _formatResponse(dynamic response) {
+    if (response == null) return 'null';
+    if (response is String) return response;
+    return _formatJson(response);
   }
 }
