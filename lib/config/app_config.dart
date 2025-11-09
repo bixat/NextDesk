@@ -12,11 +12,11 @@ class AppConfig {
   static const String qwenApiKey = String.fromEnvironment("QWEN_API_KEY");
 
   /// Vision provider: 'gemini' or 'qwen'
-  static const String visionProvider = 'qwen';
+  static const String visionProvider = 'gemini';
 
   /// Shortcuts provider: 'gemini' or 'qwen'
   /// Used by getShortcuts tool to fetch keyboard shortcuts
-  static const String shortcutsProvider = 'qwen';
+  static const String shortcutsProvider = 'gemini';
 
   /// Maximum iterations for ReAct agent
   static const int maxIterations = 20;
