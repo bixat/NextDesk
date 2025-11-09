@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../models/detection_result.dart';
 import '../config/app_config.dart';
+import 'config_service.dart';
 
 /// Element Position Detection Service using Gemini or Qwen Vision API
 class VisionService {
@@ -12,19 +13,23 @@ class VisionService {
       "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
 
   /// Detects the pixel coordinates of UI elements in a screenshot.
-  /// Uses the provider specified in AppConfig.visionProvider ('gemini' or 'qwen').
-  static Future<DetectionResult> detectElementPosition(
-      Uint8List imageBytes, String elementDescription) async {
-    if (AppConfig.visionProvider == 'qwen') {
-      return _detectWithQwen(imageBytes, elementDescription);
+  /// Uses the provider specified in ConfigService or falls back to AppConfig.
+  static Future<DetectionResult> detectElementPosition(Uint8List imageBytes,
+      String elementDescription, ConfigService? config) async {
+    final provider = config?.visionProvider ?? AppConfig.visionProvider;
+    final geminiKey = config?.geminiApiKey ?? AppConfig.geminiApiKey;
+    final qwenKey = config?.qwenApiKey ?? AppConfig.qwenApiKey;
+
+    if (provider == 'qwen') {
+      return _detectWithQwen(imageBytes, elementDescription, qwenKey);
     } else {
-      return _detectWithGemini(imageBytes, elementDescription);
+      return _detectWithGemini(imageBytes, elementDescription, geminiKey);
     }
   }
 
   /// Detects the pixel coordinates of UI elements using Qwen Vision API.
   static Future<DetectionResult> _detectWithQwen(
-      Uint8List imageBytes, String elementDescription) async {
+      Uint8List imageBytes, String elementDescription, String apiKey) async {
     try {
       final base64Image = base64Encode(imageBytes);
 
@@ -143,7 +148,7 @@ Rules:
         Uri.parse(_qwenApiUrl),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${AppConfig.qwenApiKey}',
+          'Authorization': 'Bearer $apiKey',
         },
         body: jsonEncode(requestBody),
       );
@@ -246,7 +251,7 @@ Rules:
 
   /// Detects the pixel coordinates of UI elements using Gemini Vision API.
   static Future<DetectionResult> _detectWithGemini(
-      Uint8List imageBytes, String elementDescription) async {
+      Uint8List imageBytes, String elementDescription, String apiKey) async {
     try {
       final base64Image = base64Encode(imageBytes);
 
@@ -331,7 +336,7 @@ For example: "Screenshot shows App Store page with 'Update' button instead of re
 
       // Make API request
       final response = await http.post(
-        Uri.parse('$_geminiApiUrl?key=${AppConfig.geminiApiKey}'),
+        Uri.parse('$_geminiApiUrl?key=$apiKey'),
         headers: {
           'Content-Type': 'application/json',
         },

@@ -2,11 +2,19 @@ import 'dart:io';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:bixat_key_mouse/bixat_key_mouse.dart';
 import '../config/app_config.dart';
+import 'config_service.dart';
 
 /// Service for managing Gemini AI model and tools
 class GeminiService {
   /// Initialize Gemini model with function declarations
-  static GenerativeModel initializeModel() {
+  static GenerativeModel? initializeModel(ConfigService? config) {
+    // Get API key from config or fallback to AppConfig
+    final apiKey = config?.geminiApiKey ?? AppConfig.geminiApiKey;
+
+    // Return null if no API key is configured
+    if (apiKey.isEmpty) {
+      return null;
+    }
     // Define function declarations for Gemini
     final captureScreenshotTool = Tool(
       functionDeclarations: [
@@ -169,7 +177,7 @@ class GeminiService {
 
     return GenerativeModel(
       model: 'gemini-2.5-flash',
-      apiKey: AppConfig.geminiApiKey,
+      apiKey: apiKey,
       tools: [
         captureScreenshotTool,
         detectElementTool,

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/app_state.dart';
+import '../services/config_service.dart';
 import '../widgets/task_card.dart';
 import '../widgets/user_prompt_dialog.dart';
 import '../config/app_theme.dart';
+import 'settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -125,7 +127,7 @@ class _MainScreenState extends State<MainScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'ReAct AI Agent',
+                        'NextDesk AI Agent',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: AppTheme.textPrimary,
@@ -167,8 +169,25 @@ class _MainScreenState extends State<MainScreen> {
                     ],
                   ),
                 ),
+                // Settings button
+                IconButton(
+                  icon: const Icon(Icons.settings_rounded),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsScreen(),
+                      ),
+                    );
+                  },
+                  tooltip: 'Settings',
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppTheme.surfaceLight,
+                    foregroundColor: AppTheme.textSecondary,
+                  ),
+                ),
                 if (isSmallScreen) ...[
-                  const SizedBox(width: AppTheme.spaceMd),
+                  const SizedBox(width: AppTheme.spaceXs),
                   IconButton(
                     icon: const Icon(Icons.analytics_outlined),
                     onPressed: () {
@@ -184,6 +203,9 @@ class _MainScreenState extends State<MainScreen> {
               ],
             ),
           ),
+
+          // Configuration Warning Banner
+          _buildConfigurationWarning(),
 
           // Tasks List
           Expanded(
@@ -357,7 +379,7 @@ class _MainScreenState extends State<MainScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'ReAct Agent',
+                        'NextDesk',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: AppTheme.primaryPurple,
@@ -781,6 +803,92 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildConfigurationWarning() {
+    return Consumer<ConfigService>(
+      builder: (context, config, _) {
+        // Check if any required API keys are missing
+        final bool geminiMissing = !config.isGeminiConfigured;
+        final bool qwenMissing = (config.visionProvider == 'qwen' ||
+                config.shortcutsProvider == 'qwen') &&
+            !config.isQwenConfigured;
+
+        if (!geminiMissing && !qwenMissing) {
+          return const SizedBox.shrink();
+        }
+
+        return Container(
+          margin: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spaceMd,
+            vertical: AppTheme.spaceSm,
+          ),
+          padding: const EdgeInsets.all(AppTheme.spaceMd),
+          decoration: BoxDecoration(
+            color: AppTheme.warningOrange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            border: Border.all(
+              color: AppTheme.warningOrange.withOpacity(0.3),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.warning_rounded,
+                color: AppTheme.warningOrange,
+                size: 20,
+              ),
+              const SizedBox(width: AppTheme.spaceMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Configuration Required',
+                      style: TextStyle(
+                        color: AppTheme.warningOrange,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      geminiMissing
+                          ? 'Gemini API key is required. Please configure it in Settings.'
+                          : 'Qwen API key is required for selected provider. Please configure it in Settings.',
+                      style: TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppTheme.spaceMd),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.settings_rounded, size: 16),
+                label: const Text('Settings'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.warningOrange,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spaceSm,
+                    vertical: AppTheme.spaceXs,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0);
+      },
     );
   }
 

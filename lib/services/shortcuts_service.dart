@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:bixat_key_mouse/bixat_key_mouse.dart';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
+import 'config_service.dart';
 
 /// Service for fetching keyboard shortcuts using AI
 class ShortcutsService {
@@ -12,15 +13,19 @@ class ShortcutsService {
       "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
 
   /// Fetches keyboard shortcuts for a specific app or system task
-  /// Uses the provider specified in AppConfig.shortcutsProvider ('gemini' or 'qwen')
+  /// Uses the provider specified in ConfigService or falls back to AppConfig
   static Future<Map<String, dynamic>> getShortcuts({
     required String query,
+    ConfigService? config,
   }) async {
     try {
-      final provider = AppConfig.shortcutsProvider;
+      final provider = config?.shortcutsProvider ?? AppConfig.shortcutsProvider;
+      final geminiKey = config?.geminiApiKey ?? AppConfig.geminiApiKey;
+      final qwenKey = config?.qwenApiKey ?? AppConfig.qwenApiKey;
       final os = Platform.operatingSystem;
-      
-      final systemPrompt = '''You are a keyboard shortcuts expert. Provide accurate keyboard shortcuts for ${os.toUpperCase()} operating system.
+
+      final systemPrompt =
+          '''You are a keyboard shortcuts expert. Provide accurate keyboard shortcuts for ${os.toUpperCase()} operating system.
 
 CRITICAL RULES:
 1. Return ONLY valid shortcuts that actually exist
@@ -46,9 +51,9 @@ Operating System: $os
 Provide the most commonly used and reliable shortcuts.''';
 
       if (provider == 'qwen') {
-        return await _fetchWithQwen(systemPrompt, userPrompt);
+        return await _fetchWithQwen(systemPrompt, userPrompt, qwenKey);
       } else {
-        return await _fetchWithGemini(systemPrompt, userPrompt);
+        return await _fetchWithGemini(systemPrompt, userPrompt, geminiKey);
       }
     } catch (e) {
       return {
@@ -60,7 +65,7 @@ Provide the most commonly used and reliable shortcuts.''';
   }
 
   static Future<Map<String, dynamic>> _fetchWithGemini(
-      String systemPrompt, String userPrompt) async {
+      String systemPrompt, String userPrompt, String apiKey) async {
     try {
       final requestBody = {
         "contents": [
@@ -82,15 +87,16 @@ Provide the most commonly used and reliable shortcuts.''';
       };
 
       final response = await http.post(
-        Uri.parse('$_geminiApiUrl?key=${AppConfig.geminiApiKey}'),
+        Uri.parse('$_geminiApiUrl?key=$apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(requestBody),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final content = data['candidates']?[0]?['content']?['parts']?[0]?['text'];
-        
+        final content =
+            data['candidates']?[0]?['content']?['parts']?[0]?['text'];
+
         if (content != null) {
           final result = jsonDecode(content);
           return {
@@ -116,7 +122,7 @@ Provide the most commonly used and reliable shortcuts.''';
   }
 
   static Future<Map<String, dynamic>> _fetchWithQwen(
-      String systemPrompt, String userPrompt) async {
+      String systemPrompt, String userPrompt, String apiKey) async {
     try {
       final requestBody = {
         "model": "qwen-vl-max-latest",
@@ -132,7 +138,7 @@ Provide the most commonly used and reliable shortcuts.''';
         Uri.parse(_qwenApiUrl),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${AppConfig.qwenApiKey}',
+          'Authorization': 'Bearer $apiKey',
         },
         body: jsonEncode(requestBody),
       );
@@ -140,7 +146,7 @@ Provide the most commonly used and reliable shortcuts.''';
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final content = data['choices']?[0]?['message']?['content'];
-        
+
         if (content != null) {
           final result = jsonDecode(content);
           return {

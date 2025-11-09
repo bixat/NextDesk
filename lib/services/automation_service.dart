@@ -4,6 +4,7 @@ import 'package:screen_capturer/screen_capturer.dart';
 import 'package:image/image.dart' as img;
 import 'vision_service.dart';
 import 'shortcuts_service.dart';
+import 'config_service.dart';
 
 /// Automation Functions that will be called by Gemini
 class AutomationService {
@@ -12,11 +13,13 @@ class AutomationService {
   final Function(String) onStatusUpdate;
   final Function() onScreenshotTaken;
   final Future<String> Function(String question)? onUserPrompt;
+  final ConfigService? config;
 
   AutomationService({
     required this.onStatusUpdate,
     required this.onScreenshotTaken,
     this.onUserPrompt,
+    this.config,
   });
 
   // Capture screenshot function
@@ -87,6 +90,7 @@ class AutomationService {
       final result = await VisionService.detectElementPosition(
         lastScreenshot!,
         elementDescription,
+        config,
       );
 
       if (result.status == 'success') {
@@ -228,7 +232,10 @@ class AutomationService {
   Future<Map<String, dynamic>> getShortcuts({required String query}) async {
     try {
       onStatusUpdate('Fetching shortcuts for: $query');
-      final result = await ShortcutsService.getShortcuts(query: query);
+      final result = await ShortcutsService.getShortcuts(
+        query: query,
+        config: config,
+      );
 
       if (result['success'] == true) {
         final shortcuts = result['shortcuts'] as List;

@@ -8,6 +8,7 @@ import '../models/task.dart';
 import '../models/react_agent_state.dart';
 import '../services/automation_service.dart';
 import '../services/gemini_service.dart';
+import '../services/config_service.dart';
 
 /// Main application state provider
 class AppState extends ChangeNotifier {
@@ -15,6 +16,7 @@ class AppState extends ChangeNotifier {
   late Isar _isar;
   late AutomationService _automationService;
   final ReActAgentState _agentState = ReActAgentState();
+  final ConfigService? config;
 
   List<Task> tasks = [];
   Task? currentTask;
@@ -42,10 +44,11 @@ class AppState extends ChangeNotifier {
         notifyListeners();
       },
       onUserPrompt: _userPromptCallback,
+      config: config,
     );
   }
 
-  AppState() {
+  AppState({this.config}) {
     _automationService = AutomationService(
       onStatusUpdate: (msg) {
         status = msg;
@@ -56,6 +59,7 @@ class AppState extends ChangeNotifier {
         notifyListeners();
       },
       onUserPrompt: _userPromptCallback,
+      config: config,
     );
     _initializeServices();
   }
@@ -67,7 +71,24 @@ class AppState extends ChangeNotifier {
     await loadTasks();
 
     // Initialize Gemini
-    _model = GeminiService.initializeModel();
+    _model = GeminiService.initializeModel(config);
+  }
+
+  /// Reinitialize services (e.g., after API key changes)
+  Future<void> reinitializeServices() async {
+    status = 'Reinitializing services...';
+    notifyListeners();
+
+    // Reinitialize Gemini model with new config
+    _model = GeminiService.initializeModel(config);
+
+    // Update status based on model initialization
+    if (_model != null) {
+      status = 'Connected - Ready to process tasks';
+    } else {
+      status = 'API key required - Please configure in Settings';
+    }
+    notifyListeners();
   }
 
   Future<void> loadTasks() async {
@@ -75,9 +96,43 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Check if the required API keys are configured based on selected providers
+  /// Returns error message if configuration is missing, null if everything is OK
+  String? _checkConfiguration() {
+    if (config == null) {
+      return 'Configuration not initialized. Please restart the app.';
+    }
+
+    // Check Gemini API key (always needed for main model)
+    if (!config!.isGeminiConfigured) {
+      return '⚠️ Gemini API key not configured. Please add your API key in Settings.';
+    }
+
+    // Check vision provider API key
+    if (config!.visionProvider == 'qwen' && !config!.isQwenConfigured) {
+      return '⚠️ Qwen API key not configured. Vision provider is set to Qwen but no API key found. Please configure in Settings.';
+    }
+
+    // Check shortcuts provider API key
+    if (config!.shortcutsProvider == 'qwen' && !config!.isQwenConfigured) {
+      return '⚠️ Qwen API key not configured. Shortcuts provider is set to Qwen but no API key found. Please configure in Settings.';
+    }
+
+    return null; // All good
+  }
+
   Future<void> processUserInput(String input) async {
+    // Check if required API keys are configured
+    final String? configError = _checkConfiguration();
+    if (configError != null) {
+      status = configError;
+      notifyListeners();
+      return;
+    }
+
     if (_model == null) {
-      status = 'Please add your Gemini API key in the code';
+      status =
+          'Gemini model not initialized. Please configure API key in Settings.';
       notifyListeners();
       return;
     }
@@ -118,7 +173,7 @@ class AppState extends ChangeNotifier {
       _agentState.iterationCount = 1;
 
       // ReAct loop
-      final int maxIterations = 30;
+      final int maxIterations = config?.maxIterations ?? 30;
 
       while (_agentState.iterationCount <= maxIterations) {
         // Parse the response for ReAct components
