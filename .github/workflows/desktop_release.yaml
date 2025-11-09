@@ -74,11 +74,8 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - run: flutter create .
       - run: flutter pub get
-      - name: install linux requirements for local_notifier package
-        if: matrix.target == 'Linux'
-        run: sudo apt-get install libnotify-dev
       # Build the application.
-      - run: flutter build -v ${{ matrix.build_target }} --release
+      - run: flutter build -v ${{ matrix.build_target }} --release --dart-define=QWEN_API_KEY=${{ secrets.QWEN_API_KEY }} --dart-define=GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
 
       # Package the build.
       - name: Copy VC redistributables to release directory for Windows
