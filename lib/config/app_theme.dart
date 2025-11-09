@@ -7,31 +7,34 @@ class AppTheme {
   // Private constructor to prevent instantiation
   AppTheme._();
 
-  // Color Palette - Modern dark theme with purple accent
-  static const Color primaryPurple = Color(0xFF9D4EDD);
-  static const Color primaryPurpleLight = Color(0xFFC77DFF);
-  static const Color primaryPurpleDark = Color(0xFF7B2CBF);
+  // Color Palette - Based on NextDesk logo colors
+  // Primary blue from logo (#27A4F2)
+  static const Color primaryPurple = Color(0xFF27A4F2);
+  static const Color primaryPurpleLight = Color(0xFF5CB8F5);
+  static const Color primaryPurpleDark = Color(0xFF1F82BF);
 
-  static const Color secondaryBlue = Color(0xFF3A86FF);
-  static const Color secondaryBlueLight = Color(0xFF5E9FFF);
-  static const Color secondaryBlueDark = Color(0xFF2667D9);
+  // Secondary blue from logo (#145E8C)
+  static const Color secondaryBlue = Color(0xFF145E8C);
+  static const Color secondaryBlueLight = Color(0xFF1F82BF);
+  static const Color secondaryBlueDark = Color(0xFF011F26);
 
+  // Accent colors
   static const Color accentGreen = Color(0xFF06FFA5);
   static const Color accentGreenDark = Color(0xFF00D97E);
 
   static const Color errorRed = Color(0xFFFF006E);
   static const Color warningOrange = Color(0xFFFFBE0B);
 
-  // Background colors
-  static const Color backgroundDark = Color(0xFF0D0D0D);
-  static const Color backgroundMedium = Color(0xFF1A1A1A);
-  static const Color backgroundLight = Color(0xFF242424);
-  static const Color backgroundElevated = Color(0xFF2D2D2D);
+  // Background colors - Dark theme with subtle blue tint
+  static const Color backgroundDark = Color(0xFF0A0E10);
+  static const Color backgroundMedium = Color(0xFF0F1419);
+  static const Color backgroundLight = Color(0xFF151B20);
+  static const Color backgroundElevated = Color(0xFF1A2228);
 
   // Surface colors
-  static const Color surfaceDark = Color(0xFF1E1E1E);
-  static const Color surfaceMedium = Color(0xFF2A2A2A);
-  static const Color surfaceLight = Color(0xFF363636);
+  static const Color surfaceDark = Color(0xFF141A1F);
+  static const Color surfaceMedium = Color(0xFF1C2329);
+  static const Color surfaceLight = Color(0xFF242B32);
 
   // Text colors
   static const Color textPrimary = Color(0xFFFFFFFF);
@@ -39,10 +42,10 @@ class AppTheme {
   static const Color textTertiary = Color(0xFF808080);
   static const Color textDisabled = Color(0xFF4D4D4D);
 
-  // Border colors
-  static const Color borderSubtle = Color(0xFF2A2A2A);
-  static const Color borderMedium = Color(0xFF3D3D3D);
-  static const Color borderStrong = Color(0xFF525252);
+  // Border colors - Subtle borders for better contrast
+  static const Color borderSubtle = Color(0xFF2A3540);
+  static const Color borderMedium = Color(0xFF3D4A57);
+  static const Color borderStrong = Color(0xFF526070);
 
   // Spacing system (8px base)
   static const double spaceXs = 4.0;
