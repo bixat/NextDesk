@@ -5,11 +5,11 @@
 class AppConfig {
   /// Gemini API Key
   /// Get your API key from: https://makersuite.google.com/app/apikey
-  static const String geminiApiKey = 'YOUR_GEMINI_API_KEY_HERE';
+  static const String geminiApiKey = String.fromEnvironment("GEMINI_API_KEY");
 
   /// Qwen API Key (Dashscope)
   /// Get your API key from: https://dashscope.console.aliyun.com/
-  static const String qwenApiKey = 'YOUR_QWEN_API_KEY_HERE';
+  static const String qwenApiKey = String.fromEnvironment("QWEN_API_KEY");
 
   /// Vision provider: 'gemini' or 'qwen'
   static const String visionProvider = 'qwen';
