@@ -26,6 +26,16 @@ This Flutter desktop application combines AI reasoning with keyboard automation 
 
 **Current Focus:** Improving vision detection accuracy and reliability.
 
+## 🖥️ Platform Support
+
+| Platform    | Status                  | Notes                                                                                                                                            |
+| ----------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **macOS**   | ✅ Supported             | Fully tested and working                                                                                                                         |
+| **Windows** | ⚠️ **NOT SUPPORTED YET** | Requires testing of [bixat_key_mouse](https://pub.dev/packages/bixat_key_mouse#supported-platforms) plugin for proper keyboard and mouse control |
+| **Linux**   | ⚠️ **NOT SUPPORTED YET** | Requires testing of [bixat_key_mouse](https://pub.dev/packages/bixat_key_mouse#supported-platforms) plugin for proper keyboard and mouse control |
+
+> **Note:** While the `bixat_key_mouse` plugin claims to support Windows and Linux, we need to thoroughly test keyboard and mouse control functionality on these platforms before officially supporting them in this application.
+
 ## 📸 Screenshots
 
 ### Home Screen
@@ -276,7 +286,7 @@ class Task {
 ### Prerequisites
 - Flutter SDK (>=3.0.0)
 - Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-- macOS, Windows, or Linux desktop environment
+- **macOS desktop environment** (Windows and Linux not yet supported - see [Platform Support](#️-platform-support))
 
 ### Installation
 
@@ -464,16 +474,6 @@ This is a known limitation of the current implementation and AI vision models. W
    - Check that `bixat_key_mouse` package is properly installed
    - Verify platform-specific permissions
    - Restart the application after granting permissions
-
-4. **UI not responsive**
-   - Resize the window to trigger responsive breakpoints
-   - Check that the window width crosses the 800px threshold
-   - Restart the app if drawer doesn't appear on small screens
-
-5. **Animations not smooth**
-   - Ensure you're running in release mode for best performance
-   - Check system resources (CPU/Memory)
-   - Disable animations in `main_screen.dart` if needed
 
 
 ## 🤝 Contributing
