@@ -102,7 +102,7 @@ class _UserPromptDialogState extends State<UserPromptDialog> {
             ),
           ),
           const SizedBox(height: AppTheme.spaceMd),
-          
+
           // Label
           const Text(
             'Your response:',
@@ -113,7 +113,7 @@ class _UserPromptDialogState extends State<UserPromptDialog> {
             ),
           ),
           const SizedBox(height: AppTheme.spaceXs),
-          
+
           // Text field
           TextField(
             controller: _responseController,
@@ -185,4 +185,3 @@ class _UserPromptDialogState extends State<UserPromptDialog> {
     );
   }
 }
-
