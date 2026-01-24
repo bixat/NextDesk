@@ -7,21 +7,18 @@ import 'config_service.dart';
 
 /// Service for fetching keyboard shortcuts using AI
 class ShortcutsService {
-  static const String _geminiApiUrl =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
-  static const String _qwenApiUrl =
-      "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
+  static const String _openRouterApiUrl =
+      "https://openrouter.ai/api/v1/chat/completions";
 
   /// Fetches keyboard shortcuts for a specific app or system task
-  /// Uses the provider specified in ConfigService or falls back to AppConfig
+  /// Uses OpenRouter.
   static Future<Map<String, dynamic>> getShortcuts({
     required String query,
     ConfigService? config,
   }) async {
     try {
-      final provider = config?.shortcutsProvider ?? AppConfig.shortcutsProvider;
-      final geminiKey = config?.geminiApiKey ?? AppConfig.geminiApiKey;
-      final qwenKey = config?.qwenApiKey ?? AppConfig.qwenApiKey;
+      final openRouterKey =
+          config?.openRouterApiKey ?? AppConfig.openRouterApiKey;
       final os = Platform.operatingSystem;
 
       final systemPrompt =
@@ -50,11 +47,8 @@ Output format:
 Operating System: $os
 Provide the most commonly used and reliable shortcuts.''';
 
-      if (provider == 'qwen') {
-        return await _fetchWithQwen(systemPrompt, userPrompt, qwenKey);
-      } else {
-        return await _fetchWithGemini(systemPrompt, userPrompt, geminiKey);
-      }
+      return await _fetchWithOpenRouter(
+          systemPrompt, userPrompt, openRouterKey);
     } catch (e) {
       return {
         'success': false,
@@ -64,68 +58,11 @@ Provide the most commonly used and reliable shortcuts.''';
     }
   }
 
-  static Future<Map<String, dynamic>> _fetchWithGemini(
+  static Future<Map<String, dynamic>> _fetchWithOpenRouter(
       String systemPrompt, String userPrompt, String apiKey) async {
     try {
       final requestBody = {
-        "contents": [
-          {
-            "parts": [
-              {"text": userPrompt}
-            ]
-          }
-        ],
-        "generationConfig": {
-          "temperature": 0.3,
-          "responseMimeType": "application/json",
-        },
-        "systemInstruction": {
-          "parts": [
-            {"text": systemPrompt}
-          ]
-        }
-      };
-
-      final response = await http.post(
-        Uri.parse('$_geminiApiUrl?key=$apiKey'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(requestBody),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final content =
-            data['candidates']?[0]?['content']?['parts']?[0]?['text'];
-
-        if (content != null) {
-          final result = jsonDecode(content);
-          return {
-            'success': true,
-            'shortcuts': result['shortcuts'] ?? [],
-            'provider': 'gemini',
-          };
-        }
-      }
-
-      return {
-        'success': false,
-        'message': 'Failed to fetch shortcuts from Gemini',
-        'shortcuts': [],
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Gemini error: $e',
-        'shortcuts': [],
-      };
-    }
-  }
-
-  static Future<Map<String, dynamic>> _fetchWithQwen(
-      String systemPrompt, String userPrompt, String apiKey) async {
-    try {
-      final requestBody = {
-        "model": "qwen-vl-max-latest",
+        "model": "google/gemini-3-flash-preview",
         "messages": [
           {"role": "system", "content": systemPrompt},
           {"role": "user", "content": userPrompt}
@@ -135,10 +72,12 @@ Provide the most commonly used and reliable shortcuts.''';
       };
 
       final response = await http.post(
-        Uri.parse(_qwenApiUrl),
+        Uri.parse(_openRouterApiUrl),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $apiKey',
+          'HTTP-Referer': 'https://bixat.dev/products/nextdesk',
+          'X-Title': 'NextDesk',
         },
         body: jsonEncode(requestBody),
       );
@@ -152,20 +91,20 @@ Provide the most commonly used and reliable shortcuts.''';
           return {
             'success': true,
             'shortcuts': result['shortcuts'] ?? [],
-            'provider': 'qwen',
+            'provider': 'openrouter',
           };
         }
       }
 
       return {
         'success': false,
-        'message': 'Failed to fetch shortcuts from Qwen',
+        'message': 'Failed to fetch shortcuts from OpenRouter',
         'shortcuts': [],
       };
     } catch (e) {
       return {
         'success': false,
-        'message': 'Qwen error: $e',
+        'message': 'OpenRouter error: $e',
         'shortcuts': [],
       };
     }

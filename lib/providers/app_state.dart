@@ -1,18 +1,18 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import '../services/openrouter_service.dart';
 import 'package:isar/isar.dart' hide Schema;
 import 'package:path_provider/path_provider.dart';
 import '../models/task.dart';
 import '../models/react_agent_state.dart';
 import '../services/automation_service.dart';
-import '../services/gemini_service.dart';
+// import '../services/gemini_service.dart';
 import '../services/config_service.dart';
 
 /// Main application state provider
 class AppState extends ChangeNotifier {
-  GenerativeModel? _model;
+  OpenRouterService? _model;
   late Isar _isar;
   late AutomationService _automationService;
   final ReActAgentState _agentState = ReActAgentState();
@@ -72,8 +72,8 @@ class AppState extends ChangeNotifier {
     _isar = await Isar.open([TaskSchema], directory: dir.path);
     await loadTasks();
 
-    // Initialize Gemini
-    _model = GeminiService.initializeModel(config);
+    // Initialize LLM Service
+    _model = OpenRouterService.initialize(config);
   }
 
   /// Reinitialize services (e.g., after API key changes)
@@ -81,8 +81,8 @@ class AppState extends ChangeNotifier {
     status = 'Reinitializing services...';
     notifyListeners();
 
-    // Reinitialize Gemini model with new config
-    _model = GeminiService.initializeModel(config);
+    // Reinitialize model with new config
+    _model = OpenRouterService.initialize(config);
 
     // Update status based on model initialization
     if (_model != null) {
@@ -105,19 +105,9 @@ class AppState extends ChangeNotifier {
       return 'Configuration not initialized. Please restart the app.';
     }
 
-    // Check Gemini API key (always needed for main model)
-    if (!config!.isGeminiConfigured) {
-      return '⚠️ Gemini API key not configured. Please add your API key in Settings.';
-    }
-
-    // Check vision provider API key
-    if (config!.visionProvider == 'qwen' && !config!.isQwenConfigured) {
-      return '⚠️ Qwen API key not configured. Vision provider is set to Qwen but no API key found. Please configure in Settings.';
-    }
-
-    // Check shortcuts provider API key
-    if (config!.shortcutsProvider == 'qwen' && !config!.isQwenConfigured) {
-      return '⚠️ Qwen API key not configured. Shortcuts provider is set to Qwen but no API key found. Please configure in Settings.';
+    // Check OpenRouter API key (always needed for main model)
+    if (!config!.isOpenRouterConfigured) {
+      return '⚠️ OpenRouter API key not configured. Please add your API key in Settings.';
     }
 
     return null; // All good
@@ -134,7 +124,7 @@ class AppState extends ChangeNotifier {
 
     if (_model == null) {
       status =
-          'Gemini model not initialized. Please configure API key in Settings.';
+          'OpenRouter service not initialized. Please configure API key in Settings.';
       notifyListeners();
       return;
     }
@@ -161,12 +151,12 @@ class AppState extends ChangeNotifier {
       final chat = _model!.startChat(history: []);
 
       // Get ReAct system prompt
-      final systemPrompt = GeminiService.getReActSystemPrompt(input);
+      final systemPrompt = OpenRouterService.getReActSystemPrompt(input);
 
       // Send initial message
-      GenerateContentResponse response;
+      OpenRouterResponse response;
       try {
-        response = await chat.sendMessage(Content.text(systemPrompt));
+        response = await chat.sendMessage(systemPrompt);
       } catch (e) {
         status = 'Error sending initial message: $e';
         print('Error sending initial message: $e');
@@ -202,26 +192,19 @@ class AppState extends ChangeNotifier {
         // Parse the response for ReAct components
         String responseText = '';
         try {
-          // Try to get text from response
           if (response.text != null && response.text!.isNotEmpty) {
             responseText = response.text!;
           } else if (response.functionCalls.isNotEmpty) {
-            // If no text but has function calls, that's expected
             responseText = 'ACTION: Function call detected';
           } else {
-            // No text and no function calls - might be an error
             print('Warning: Response has no text or function calls');
             responseText = '';
           }
         } catch (e) {
-          // Handle cases where response.text throws an error
           print('Warning: Could not get response.text: $e');
-          print('Response type: ${response.runtimeType}');
-          // Check if there are function calls instead
           if (response.functionCalls.isNotEmpty) {
             responseText = 'ACTION: Function call detected';
           } else {
-            // Try to continue anyway
             responseText = '';
           }
         }
@@ -246,15 +229,28 @@ class AppState extends ChangeNotifier {
         }
 
         // Execute action if specified
-        final functionCalls = response.functionCalls.toList();
+        final functionCalls = response.functionCalls;
         if (functionCalls.isNotEmpty) {
+          List<Map<String, dynamic>> toolOutputs = [];
+
           for (final functionCall in functionCalls) {
             currentStep =
                 '${functionCall.name}(${jsonEncode(functionCall.args)})';
             notifyListeners();
 
             // Execute the function
-            final result = await _executeFunction(functionCall);
+            // We need to construct a compatible FunctionCall object or change _executeFunction
+            // _executeFunction expects a FunctionCall, but currently it's google's type.
+            // I need to change _executeFunction signature too.
+            // But for now let's make a mock object or modify logic.
+
+            // Wait, I can just pass name and args to _executeFunction separately or creates a map.
+            // _executeFunction uses "FunctionCall call". This type is from google package.
+            // I need to update _executeFunction first.
+
+            final result =
+                await _executeFunction(functionCall.name, functionCall.args);
+
             _agentState.lastObservation = jsonEncode(result);
             print('Function result: $result');
 
@@ -266,28 +262,24 @@ class AppState extends ChangeNotifier {
               'timestamp': DateTime.now().toIso8601String(),
               'thought': _agentState.currentThought,
             });
-            print(functionCall.toJson());
+            // print(functionCall.toJson()); // toJson might need to be implemented in OpenRouterFunctionCall
 
-            // Send observation back to continue ReAct cycle
-            try {
-              response = await chat.sendMessage(
-                Content.functionResponses([
-                  FunctionResponse(functionCall.name, result),
-                ]),
-              );
-            } catch (e) {
-              print('Error sending function response: $e');
-              status = 'Error in ReAct loop: $e';
-              notifyListeners();
-              break;
-            }
+            toolOutputs.add({'name': functionCall.name, 'content': result});
+          }
+          // Send observation back to continue ReAct cycle
+          try {
+            response = await chat.sendFunctionResponses(toolOutputs);
+          } catch (e) {
+            print('Error sending function response: $e');
+            status = 'Error in ReAct loop: $e';
+            notifyListeners();
+            break;
           }
         } else {
           // If no function call, ask for next step with observation
           try {
             response = await chat.sendMessage(
-              Content.text(
-                  'OBSERVATION: No action taken. Please provide your next THOUGHT and ACTION.'),
+              'OBSERVATION: No action taken. Please provide your next THOUGHT and ACTION.',
             );
           } catch (e) {
             print('Error sending text message: $e');
@@ -363,63 +355,64 @@ class AppState extends ChangeNotifier {
     _agentState.isReasoning = _agentState.currentThought.isNotEmpty;
   }
 
-  Future<Map<String, dynamic>> _executeFunction(FunctionCall call) async {
-    print("Calling function: ${call.name} with args: ${call.args}");
+  Future<Map<String, dynamic>> _executeFunction(
+      String name, Map<String, dynamic> args) async {
+    print("Calling function: ${name} with args: ${args}");
     try {
-      switch (call.name) {
+      switch (name) {
         case 'captureScreenshot':
           return await _automationService.captureScreenshot();
 
         case 'detectElementPosition':
           return await _automationService.detectElementPosition(
-            elementDescription: call.args['elementDescription'] as String,
+            elementDescription: args['elementDescription'] as String,
           );
 
         case 'moveMouse':
           return _automationService.moveMouse(
-              x: call.args['x'] as int, y: call.args['y'] as int);
+              x: args['x'] as int, y: args['y'] as int);
 
         case 'clickMouse':
           return _automationService.clickMouse(
-            button: call.args['button'] as String? ?? 'left',
-            action: call.args['action'] as String? ?? 'click',
+            button: args['button'] as String? ?? 'left',
+            action: args['action'] as String? ?? 'click',
           );
 
         case 'typeText':
           return _automationService.typeText(
-            text: call.args['text'] as String,
+            text: args['text'] as String,
           );
 
         case 'pressKeys':
           return _automationService.pressKeys(
-            keys: call.args['keys'] as List,
+            keys: args['keys'] as List,
           );
 
         case 'wait':
           return await _automationService.wait(
-            seconds: (call.args['seconds'] as num).toDouble(),
+            seconds: (args['seconds'] as num).toDouble(),
           );
 
         case 'getShortcuts':
           return await _automationService.getShortcuts(
-            query: call.args['query'] as String,
+            query: args['query'] as String,
           );
 
         case 'askUser':
           return await _automationService.askUser(
-            question: call.args['question'] as String,
+            question: args['question'] as String,
           );
 
         default:
           return {
             'success': false,
-            'message': 'Unknown function: ${call.name}',
+            'message': 'Unknown function: ${name}',
           };
       }
     } catch (e) {
       return {
         'success': false,
-        'message': 'Error executing ${call.name}: $e',
+        'message': 'Error executing ${name}: $e',
       };
     }
   }
@@ -468,5 +461,5 @@ class AppState extends ChangeNotifier {
   // Getters
   ReActAgentState get agentState => _agentState;
   List<String> get thoughts => thoughtLog;
-  GenerativeModel? get model => _model;
+  OpenRouterService? get model => _model;
 }
