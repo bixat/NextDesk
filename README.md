@@ -1,11 +1,11 @@
 # NextDesk
 
-**NextDesk** is an intelligent desktop automation application powered by Google's Gemini AI that uses the **ReAct (Reasoning + Acting)** framework to understand and execute complex computer tasks through natural language commands.
+**NextDesk** is an intelligent desktop automation application powered by **LLMs via OpenRouter** (using advanced models like Google's Gemini 3.0) that uses the **ReAct (Reasoning + Acting)** framework to understand and execute complex computer tasks through natural language commands.
 
-> ⚠️ **UNDER ACTIVE DEVELOPMENT**
-> This project is currently in active development and **not ready for production use**.
-> The vision-based element detection tool (`detectElementPosition`) is particularly **unreliable and not recommended** for use at this time.
-> We recommend using keyboard shortcuts (`pressKeys`) and the `getShortcuts` tool instead for more reliable automation.
+> ⚠️ **UNDER DEVELOPMENT**
+> This project is currently in development and **not ready for production use**.
+> The vision-based element detection tool (`detectElementPosition`) is experimental.
+> We recommend using keyboard shortcuts (`pressKeys`) and the `getShortcuts` tool for more reliable automation.
 
 ## 🌟 Overview
 
@@ -24,7 +24,7 @@ This Flutter desktop application combines AI reasoning with keyboard automation 
 | **User Interaction**    | ✅ Working       | Agent can ask user questions via dialog      |
 | **Task Persistence**    | ✅ Working       | Isar database for task history               |
 
-**Current Focus:** Improving vision detection accuracy and reliability.
+**Current Focus:** Improving vision detection accuracy and reliability using newer vision models.
 
 ## 🖥️ Platform Support
 
@@ -64,7 +64,7 @@ nextdesk/
 │   │   ├── detection_result.dart     # UI element detection results
 │   │   └── react_agent_state.dart    # ReAct agent state
 │   ├── services/
-│   │   ├── gemini_service.dart       # Gemini AI model initialization
+│   │   ├── openrouter_service.dart   # OpenRouter AI integration
 │   │   ├── vision_service.dart       # AI-powered UI element detection
 │   │   ├── automation_service.dart   # All automation functions
 │   │   └── shortcuts_service.dart    # AI-powered keyboard shortcuts
@@ -93,8 +93,8 @@ The application follows **separation of concerns** with a clean modular architec
    - `ReActAgentState`: State management for the ReAct reasoning cycle
 
 #### 2. **Services** (`lib/services/`)
-   - `GeminiService`: Initializes and configures Gemini AI model with function calling
-   - `VisionService`: AI-powered UI element detection using Gemini or Qwen Vision API
+   - `OpenRouterService`: Initializes and configures AI models via OpenRouter API with function calling support
+   - `VisionService`: AI-powered UI element detection using OpenRouter Vision API
    - `AutomationService`: Wrapper for all automation capabilities (mouse, keyboard, screen)
 
 #### 3. **Providers** (`lib/providers/`)
@@ -147,6 +147,7 @@ The agent executes one of the available automation functions:
 - `typeText(text)`: Types text via keyboard
 - `pressKeys(keys)`: Presses keyboard shortcuts
 - `wait(seconds)`: Waits for a specified duration
+- `getShortcuts(query)`: Dynamically fetches app shortcuts
 
 #### 3. **OBSERVATION** (Feedback Phase)
 The agent receives feedback from the action:
@@ -159,51 +160,24 @@ This cycle repeats until the task is complete or max iterations (20) is reached.
 
 ## 🔧 Technical Architecture
 
-### 1. AI Integration (Gemini 2.5 Flash)
+### 1. AI Integration (OpenRouter)
 
-The application uses Google's Gemini AI with **function calling** capabilities:
+The application uses **OpenRouter** to access powerful LLMs (like Google Gemini 3.0 Flash/Pro) with **function calling** capabilities.
 
-```dart
-GenerativeModel(
-  model: 'gemini-2.5-flash',
-  apiKey: apiKey,
-  tools: [
-    captureScreenshotTool,
-    detectElementTool,
-    moveMouseTool,
-    clickMouseTool,
-    typeTextTool,
-    pressKeysTool,
-    waitTool,
-  ],
-)
-```
-
-The AI can:
-- Understand natural language instructions
-- Reason about multi-step tasks
-- Call automation functions with appropriate parameters
-- Process visual information from screenshots
+The service handles:
+- Chat session management
+- System prompts for ReAct behavior
+- Tool/Function definition and execution signatures
+- Response parsing and JSON handling
 
 ### 2. Computer Vision (UI Element Detection)
 
-The `VisionService` supports **two vision providers** for UI element detection:
-
-#### **Gemini Vision API** (Default)
-- Uses Google's Gemini 2.5 Flash model
-- Integrated with Google AI Studio
-- Fast and reliable for most use cases
-
-#### **Qwen Vision API** (Alternative)
-- Uses Alibaba Cloud's Qwen 2.5 VL 72B Instruct model
-- OpenAI-compatible API format
-- Provides image size detection and confidence scores
-- Configurable resolution parameters
+The `VisionService` leverages the **OpenRouter Vision API** for UI element detection. It sends screenshots to a vision-capable model (e.g., Gemini 3.0 Flash) to identify pixel coordinates of described elements.
 
 **How it works:**
 1. Takes a screenshot of the current screen
-2. Sends the image + element description to the selected vision API
-3. AI analyzes the image and returns pixel coordinates
+2. Sends the image + element description to the OpenRouter API
+3. AI analyzes the image and returns pixel coordinates via JSON
 4. Returns a `DetectionResult` with x, y coordinates and confidence score
 
 Example:
@@ -211,18 +185,10 @@ Example:
 final result = await VisionService.detectElementPosition(
   imageBytes,
   "blue Submit button",
+  config,
 );
 // Returns: {x: 450, y: 320, confidence: 0.95}
 ```
-
-**Switching Providers:**
-Edit `lib/config/app_config.dart`:
-```dart
-static const String visionProvider = 'qwen';  // or 'gemini'
-static const String qwenApiKey = 'sk-your-qwen-api-key';
-```
-
-See [QWEN_INTEGRATION.md](QWEN_INTEGRATION.md) for detailed setup instructions.
 
 ### 3. Input Automation
 
@@ -258,7 +224,7 @@ class Task {
 ## 📦 Dependencies
 
 ### Core AI & Automation
-- **google_generative_ai** (^0.4.3): Gemini AI integration with function calling
+- **http** (^1.2.0): For making API requests to OpenRouter
 - **bixat_key_mouse**: Custom Rust-based FFI package for mouse/keyboard control
 - **screen_capturer** (^0.2.1): Cross-platform screen capture functionality
 
@@ -285,7 +251,7 @@ class Task {
 
 ### Prerequisites
 - Flutter SDK (>=3.0.0)
-- Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+- OpenRouter API key from [OpenRouter](https://openrouter.ai/keys)
 - **macOS desktop environment** (Windows and Linux not yet supported - see [Platform Support](#️-platform-support))
 
 ### Installation
@@ -310,14 +276,16 @@ class Task {
 
 4. **Configure API key**
 
-   Copy the example config file and add your API key:
+   You can configure the API key directly in the app settings, or set it via environment variable.
+
+   Copy the example config file:
    ```bash
    cp lib/config/app_config.dart.example lib/config/app_config.dart
    ```
 
-   Then open `lib/config/app_config.dart` and replace the API key:
+   Then open `lib/config/app_config.dart` and replace the API key (optional if using Settings UI):
    ```dart
-   static const String geminiApiKey = 'YOUR_GEMINI_API_KEY_HERE';
+   static const String openRouterApiKey = 'YOUR_OPENROUTER_API_KEY_HERE';
    ```
 
 5. **Generate Isar database code**
@@ -329,8 +297,6 @@ class Task {
    ```bash
    flutter run -d macos  # or windows/linux
    ```
-
-
 
 ## 💡 Usage Examples
 
@@ -374,23 +340,13 @@ ACTION: pressKeys(['enter'])
 OBSERVATION: Task complete
 ```
 
-### Example 2: File Operations
-```
-Input: "Create a new text file named 'notes.txt' on the desktop"
-```
-
-### Example 3: Application Control
-```
-Input: "Take a screenshot and save it"
-```
-
 ## 🎯 Key Features
 
 ### ✅ Implemented
 
 - ✅ Natural language task understanding
 - ✅ ReAct reasoning framework (Thought → Action → Observation)
-- ✅ AI-powered UI element detection using computer vision
+- ✅ AI-powered UI element detection using computer vision (OpenRouter)
 - ✅ Mouse and keyboard automation
 - ✅ Screenshot capture and analysis
 - ✅ Task history and persistence (Isar database)
@@ -404,76 +360,40 @@ Input: "Take a screenshot and save it"
 - [ ] Voice command input
 - [ ] Task scheduling and automation
 - [ ] Error recovery and retry logic
-- [ ] Performance optimization
 - [ ] Plugin system for custom actions
-- [ ] Cloud sync for task history
-- [ ] Dark/Light theme toggle
 - [ ] Export task history to JSON/CSV
-
-## 🏛️ Code Organization
-
-The project follows a clean, modular architecture with clear separation of concerns:
-
-- **Models**: Data structures for tasks, detection results, and agent state
-- **Services**: AI integration, vision processing, and automation functions
-- **Providers**: State management using Provider pattern
-- **Screens**: Main UI with responsive layout
-- **Widgets**: Reusable UI components
-- **Config**: Centralized theme and design system
-
-## 🔒 Security & Privacy
-
-- **API Key**: Store your Gemini API key securely (use environment variables in production)
-- **Local Processing**: All automation runs locally on your machine
-- **Data Storage**: Task history is stored locally using Isar database
-- **Screenshots**: Temporary screenshots are kept in memory and not persisted
-- **No Telemetry**: No data is sent to external servers except Gemini API calls
-- **Permissions**: Requires accessibility permissions for automation (user-controlled)
-
-
 
 ## ⚠️ Known Limitations
 
-### ⚠️ Vision-Based Element Detection (NOT READY)
-The `detectElementPosition` function uses AI vision to locate UI elements, but it is **currently unreliable and NOT recommended for use**:
+### ⚠️ Vision-Based Element Detection (Experimental)
+The `detectElementPosition` function uses AI vision to locate UI elements. While modern models like Gemini 3.0 are powerful, detection may still be imprecise in some contexts:
 
-- **❌ Not Production Ready**: This feature is experimental and under active development
-- **❌ Accuracy Issues**: Detection may be off by several pixels or fail entirely
-- **❌ Inconsistent Results**: Same element may be detected differently across runs
-- **❌ Complex UIs**: Elements in dense or overlapping layouts are very difficult to detect
-- **❌ Similar Elements**: May confuse similar-looking buttons or icons
-- **❌ Performance**: Vision API calls are slow and may timeout
+- **Accuracy**: Detection may be off by several pixels depending on the model's interpretation.
+- **Performance**: Vision API calls can have latency.
+- **Complex UIs**: Very dense UIs can still challenge current vision models.
 
 **✅ RECOMMENDED APPROACH:**
-- **Use keyboard shortcuts** (`pressKeys`) whenever possible - much more reliable
-- **Use `getShortcuts` tool** to dynamically fetch keyboard shortcuts for applications
-- **Avoid vision-based detection** until this feature is stabilized in future releases
-
-This is a known limitation of the current implementation and AI vision models. We are actively working on improving this feature.
+- **Use keyboard shortcuts** (`pressKeys`) whenever possible - much more reliable.
+- **Use `getShortcuts` tool** to dynamically fetch keyboard shortcuts for applications.
+- Use vision detection as a fallback when no keyboard shortcut is available.
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
 1. **"Failed to detect element"**
-   - **Note**: Element detection is not always precise and may fail
-   - Use keyboard shortcuts instead of mouse clicks when possible
-   - Ensure the element description is very clear and specific
-   - Try taking a screenshot first to verify the UI state
-   - Check that the element is visible on screen
-   - Improve description with more details (e.g., "blue Submit button in bottom right corner with white text")
+   - Ensure the element description is very clear and specific.
+   - Try taking a screenshot first to verify visibility.
+   - Use keyboard shortcuts instead of mouse clicks when possible.
 
 2. **"API key error"**
-   - Verify your Gemini API key is valid
-   - Check your internet connection
-   - Ensure you haven't exceeded API quotas
-   - Update the API key in `lib/services/gemini_service.dart`
+   - Verify your OpenRouter API key is valid.
+   - Update the API key in the app Settings or `lib/config/app_config.dart`.
 
 3. **Mouse/keyboard not working**
-   - Grant accessibility permissions to the app (System Preferences → Security & Privacy)
-   - Check that `bixat_key_mouse` package is properly installed
-   - Verify platform-specific permissions
-   - Restart the application after granting permissions
+   - Grant accessibility permissions to the app (System Preferences → Security & Privacy).
+   - Check that `bixat_key_mouse` package is properly installed.
+   - Restart the application after granting permissions.
 
 
 ## 🤝 Contributing
@@ -486,4 +406,5 @@ https://bixat.dev
 
 ---
 
-**Built with ❤️ using Flutter and Google Gemini AI**
+
+**Built with ❤️ using Flutter and OpenRouter**
