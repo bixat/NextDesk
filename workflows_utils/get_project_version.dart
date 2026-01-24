@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'add_to_output.dart';
 
-main() async {
+Future<void> main() async {
   final data = File('./pubspec.yaml');
   String text = data.readAsStringSync();
   String currentVersion = text.substring(text.indexOf("version: ") + 9,

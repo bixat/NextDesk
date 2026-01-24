@@ -21,6 +21,7 @@ class AppTheme {
   // Accent colors
   static const Color accentGreen = Color(0xFF06FFA5);
   static const Color accentGreenDark = Color(0xFF00D97E);
+  static const Color successGreen = Color(0xFF00D97E);
 
   static const Color errorRed = Color(0xFFFF006E);
   static const Color warningOrange = Color(0xFFFFBE0B);

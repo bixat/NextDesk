@@ -5,12 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Service for managing application configuration
 /// Supports environment variables as defaults and user-provided custom values
 class ConfigService extends ChangeNotifier {
-  static const String _keyUseEnvGemini = 'use_env_gemini';
-  static const String _keyUseEnvQwen = 'use_env_qwen';
-  static const String _keyCustomGeminiKey = 'custom_gemini_key';
-  static const String _keyCustomQwenKey = 'custom_qwen_key';
-  static const String _keyVisionProvider = 'vision_provider';
-  static const String _keyShortcutsProvider = 'shortcuts_provider';
+  static const String _keyUseEnvOpenRouter = 'use_env_openrouter';
+  static const String _keyCustomOpenRouterKey = 'custom_openrouter_key';
   static const String _keyMaxIterations = 'max_iterations';
   static const String _keyScreenshotQuality = 'screenshot_quality';
   static const String _keyDefaultWaitSeconds = 'default_wait_seconds';
@@ -19,16 +15,11 @@ class ConfigService extends ChangeNotifier {
   bool _isInitialized = false;
 
   // Default values from environment variables
-  String? _envGeminiKey;
-  String? _envQwenKey;
+  String? _envOpenRouterKey;
 
   // User preferences
-  bool _useEnvGemini = true;
-  bool _useEnvQwen = true;
-  String _customGeminiKey = '';
-  String _customQwenKey = '';
-  String _visionProvider = 'gemini';
-  String _shortcutsProvider = 'gemini';
+  bool _useEnvOpenRouter = true;
+  String _customOpenRouterKey = '';
   int _maxIterations = 20;
   double _screenshotQuality = 0.8;
   int _defaultWaitSeconds = 2;
@@ -39,8 +30,7 @@ class ConfigService extends ChangeNotifier {
 
   /// Load environment variables
   void _loadEnvVariables() {
-    _envGeminiKey = Platform.environment['GEMINI_API_KEY'];
-    _envQwenKey = Platform.environment['QWEN_API_KEY'];
+    _envOpenRouterKey = Platform.environment['OPENROUTER_API_KEY'];
   }
 
   /// Initialize the service and load saved preferences
@@ -57,12 +47,8 @@ class ConfigService extends ChangeNotifier {
   Future<void> _loadPreferences() async {
     if (_prefs == null) return;
 
-    _useEnvGemini = _prefs!.getBool(_keyUseEnvGemini) ?? true;
-    _useEnvQwen = _prefs!.getBool(_keyUseEnvQwen) ?? true;
-    _customGeminiKey = _prefs!.getString(_keyCustomGeminiKey) ?? '';
-    _customQwenKey = _prefs!.getString(_keyCustomQwenKey) ?? '';
-    _visionProvider = _prefs!.getString(_keyVisionProvider) ?? 'gemini';
-    _shortcutsProvider = _prefs!.getString(_keyShortcutsProvider) ?? 'gemini';
+    _useEnvOpenRouter = _prefs!.getBool(_keyUseEnvOpenRouter) ?? true;
+    _customOpenRouterKey = _prefs!.getString(_keyCustomOpenRouterKey) ?? '';
     _maxIterations = _prefs!.getInt(_keyMaxIterations) ?? 20;
     _screenshotQuality = _prefs!.getDouble(_keyScreenshotQuality) ?? 0.8;
     _defaultWaitSeconds = _prefs!.getInt(_keyDefaultWaitSeconds) ?? 2;
@@ -70,78 +56,40 @@ class ConfigService extends ChangeNotifier {
 
   // Getters
   bool get isInitialized => _isInitialized;
-  bool get hasEnvGeminiKey =>
-      _envGeminiKey != null && _envGeminiKey!.isNotEmpty;
-  bool get hasEnvQwenKey => _envQwenKey != null && _envQwenKey!.isNotEmpty;
-  String? get envGeminiKey => _envGeminiKey;
-  String? get envQwenKey => _envQwenKey;
 
-  bool get useEnvGemini => _useEnvGemini;
-  bool get useEnvQwen => _useEnvQwen;
-  String get customGeminiKey => _customGeminiKey;
-  String get customQwenKey => _customQwenKey;
-  String get visionProvider => _visionProvider;
-  String get shortcutsProvider => _shortcutsProvider;
+  bool get hasEnvOpenRouterKey =>
+      _envOpenRouterKey != null && _envOpenRouterKey!.isNotEmpty;
+
+  String? get envOpenRouterKey => _envOpenRouterKey;
+
+  bool get useEnvOpenRouter => _useEnvOpenRouter;
+  String get customOpenRouterKey => _customOpenRouterKey;
   int get maxIterations => _maxIterations;
   double get screenshotQuality => _screenshotQuality;
   int get defaultWaitSeconds => _defaultWaitSeconds;
 
-  /// Get the active Gemini API key (env or custom)
-  String get geminiApiKey {
-    if (_useEnvGemini && hasEnvGeminiKey) {
-      return _envGeminiKey!;
+  /// Get the active OpenRouter API key (env or custom)
+  String get openRouterApiKey {
+    if (_useEnvOpenRouter && hasEnvOpenRouterKey) {
+      return _envOpenRouterKey!;
     }
-    return _customGeminiKey;
+    return _customOpenRouterKey;
   }
 
-  /// Get the active Qwen API key (env or custom)
-  String get qwenApiKey {
-    if (_useEnvQwen && hasEnvQwenKey) {
-      return _envQwenKey!;
-    }
-    return _customQwenKey;
-  }
-
-  /// Check if Gemini is properly configured
-  bool get isGeminiConfigured => geminiApiKey.isNotEmpty;
-
-  /// Check if Qwen is properly configured
-  bool get isQwenConfigured => qwenApiKey.isNotEmpty;
+  /// Check if OpenRouter is properly configured
+  bool get isOpenRouterConfigured => openRouterApiKey.isNotEmpty;
 
   // Setters with persistence
-  Future<void> setUseEnvGemini(bool value) async {
-    _useEnvGemini = value;
-    await _prefs?.setBool(_keyUseEnvGemini, value);
+
+  Future<void> setUseEnvOpenRouter(bool value) async {
+    _useEnvOpenRouter = value;
+    await _prefs?.setBool(_keyUseEnvOpenRouter, value);
     notifyListeners();
   }
 
-  Future<void> setUseEnvQwen(bool value) async {
-    _useEnvQwen = value;
-    await _prefs?.setBool(_keyUseEnvQwen, value);
-    notifyListeners();
-  }
-
-  Future<void> setCustomGeminiKey(String value) async {
-    _customGeminiKey = value;
-    await _prefs?.setString(_keyCustomGeminiKey, value);
-    notifyListeners();
-  }
-
-  Future<void> setCustomQwenKey(String value) async {
-    _customQwenKey = value;
-    await _prefs?.setString(_keyCustomQwenKey, value);
-    notifyListeners();
-  }
-
-  Future<void> setVisionProvider(String value) async {
-    _visionProvider = value;
-    await _prefs?.setString(_keyVisionProvider, value);
-    notifyListeners();
-  }
-
-  Future<void> setShortcutsProvider(String value) async {
-    _shortcutsProvider = value;
-    await _prefs?.setString(_keyShortcutsProvider, value);
+  Future<void> setCustomOpenRouterKey(String value) async {
+    _customOpenRouterKey = value;
+    await _prefs?.setString(_keyCustomOpenRouterKey, value);
     notifyListeners();
   }
 
@@ -165,12 +113,8 @@ class ConfigService extends ChangeNotifier {
 
   /// Reset all settings to defaults
   Future<void> resetToDefaults() async {
-    _useEnvGemini = true;
-    _useEnvQwen = true;
-    _customGeminiKey = '';
-    _customQwenKey = '';
-    _visionProvider = 'gemini';
-    _shortcutsProvider = 'gemini';
+    _useEnvOpenRouter = true;
+    _customOpenRouterKey = '';
     _maxIterations = 20;
     _screenshotQuality = 0.8;
     _defaultWaitSeconds = 2;

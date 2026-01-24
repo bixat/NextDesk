@@ -814,13 +814,9 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildConfigurationWarning() {
     return Consumer<ConfigService>(
       builder: (context, config, _) {
-        // Check if any required API keys are missing
-        final bool geminiMissing = !config.isGeminiConfigured;
-        final bool qwenMissing = (config.visionProvider == 'qwen' ||
-                config.shortcutsProvider == 'qwen') &&
-            !config.isQwenConfigured;
+        final missingOpenRouter = !config.isOpenRouterConfigured;
 
-        if (!geminiMissing && !qwenMissing) {
+        if (!missingOpenRouter) {
           return const SizedBox.shrink();
         }
 
@@ -859,9 +855,7 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      geminiMissing
-                          ? 'Gemini API key is required. Please configure it in Settings.'
-                          : 'Qwen API key is required for selected provider. Please configure it in Settings.',
+                      'OpenRouter API key is required. Please configure it in Settings.',
                       style: TextStyle(
                         color: AppTheme.textSecondary,
                         fontSize: 12,

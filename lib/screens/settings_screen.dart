@@ -13,13 +13,11 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late TextEditingController _geminiKeyController;
-  late TextEditingController _qwenKeyController;
+  late TextEditingController _openRouterKeyController;
   late TextEditingController _maxIterationsController;
   late TextEditingController _waitSecondsController;
 
-  bool _obscureGeminiKey = true;
-  bool _obscureQwenKey = true;
+  bool _obscureOpenRouterKey = true;
   bool _hasUnsavedChanges = false;
   bool _isSaving = false;
 
@@ -27,16 +25,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     final config = context.read<ConfigService>();
-    _geminiKeyController = TextEditingController(text: config.customGeminiKey);
-    _qwenKeyController = TextEditingController(text: config.customQwenKey);
+    _openRouterKeyController =
+        TextEditingController(text: config.customOpenRouterKey);
     _maxIterationsController =
         TextEditingController(text: config.maxIterations.toString());
     _waitSecondsController =
         TextEditingController(text: config.defaultWaitSeconds.toString());
 
     // Add listeners to track changes
-    _geminiKeyController.addListener(_markAsChanged);
-    _qwenKeyController.addListener(_markAsChanged);
+    _openRouterKeyController.addListener(_markAsChanged);
     _maxIterationsController.addListener(_markAsChanged);
     _waitSecondsController.addListener(_markAsChanged);
   }
@@ -49,8 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
-    _geminiKeyController.dispose();
-    _qwenKeyController.dispose();
+    _openRouterKeyController.dispose();
     _maxIterationsController.dispose();
     _waitSecondsController.dispose();
     super.dispose();
@@ -108,52 +104,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: 'Configure your AI provider API keys',
                 ),
                 const SizedBox(height: AppTheme.spaceMd),
+
                 _buildApiKeyCard(
                   config: config,
-                  title: 'Gemini API Key',
-                  envKey: config.envGeminiKey,
-                  hasEnvKey: config.hasEnvGeminiKey,
-                  useEnv: config.useEnvGemini,
-                  controller: _geminiKeyController,
-                  obscureText: _obscureGeminiKey,
+                  title: 'OpenRouter API Key',
+                  envKey: config.envOpenRouterKey,
+                  hasEnvKey: config.hasEnvOpenRouterKey,
+                  useEnv: config.useEnvOpenRouter,
+                  controller: _openRouterKeyController,
+                  obscureText: _obscureOpenRouterKey,
                   onUseEnvChanged: (value) async {
-                    await config.setUseEnvGemini(value);
+                    await config.setUseEnvOpenRouter(value);
                     _markAsChanged();
                   },
                   onKeyChanged: (_) async {}, // No immediate save
-                  onToggleVisibility: () =>
-                      setState(() => _obscureGeminiKey = !_obscureGeminiKey),
-                  helpUrl: 'https://makersuite.google.com/app/apikey',
+                  onToggleVisibility: () => setState(
+                      () => _obscureOpenRouterKey = !_obscureOpenRouterKey),
+                  helpUrl: 'https://openrouter.ai/keys',
                 ),
-                const SizedBox(height: AppTheme.spaceMd),
-                _buildApiKeyCard(
-                  config: config,
-                  title: 'Qwen API Key',
-                  envKey: config.envQwenKey,
-                  hasEnvKey: config.hasEnvQwenKey,
-                  useEnv: config.useEnvQwen,
-                  controller: _qwenKeyController,
-                  obscureText: _obscureQwenKey,
-                  onUseEnvChanged: (value) async {
-                    await config.setUseEnvQwen(value);
-                    _markAsChanged();
-                  },
-                  onKeyChanged: (_) async {}, // No immediate save
-                  onToggleVisibility: () =>
-                      setState(() => _obscureQwenKey = !_obscureQwenKey),
-                  helpUrl: 'https://dashscope.console.aliyun.com/',
-                ),
-
-                const SizedBox(height: AppTheme.spaceLg),
-
-                // Providers Section
-                _buildSectionHeader(
-                  icon: Icons.settings_suggest_rounded,
-                  title: 'AI Providers',
-                  subtitle: 'Choose which AI models to use',
-                ),
-                const SizedBox(height: AppTheme.spaceMd),
-                _buildProviderCard(config),
 
                 const SizedBox(height: AppTheme.spaceLg),
 
@@ -190,6 +158,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           decoration: BoxDecoration(
             color: AppTheme.primaryPurple.withOpacity(0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.3)),
           ),
           child: Icon(icon, color: AppTheme.primaryPurple, size: 20),
         ),
@@ -375,160 +344,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
         ],
-      ),
-    );
-  }
-
-  Widget _buildProviderCard(ConfigService config) {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.spaceMd),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceDark,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: AppTheme.borderMedium),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Vision Provider',
-            style: TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: AppTheme.spaceXs),
-          _buildProviderSelector(
-            value: config.visionProvider,
-            onChanged: (value) async {
-              await config.setVisionProvider(value);
-              _markAsChanged();
-            },
-            geminiEnabled: config.isGeminiConfigured,
-            qwenEnabled: config.isQwenConfigured,
-          ),
-          const SizedBox(height: AppTheme.spaceMd),
-          const Text(
-            'Shortcuts Provider',
-            style: TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: AppTheme.spaceXs),
-          _buildProviderSelector(
-            value: config.shortcutsProvider,
-            onChanged: (value) async {
-              await config.setShortcutsProvider(value);
-              _markAsChanged();
-            },
-            geminiEnabled: config.isGeminiConfigured,
-            qwenEnabled: config.isQwenConfigured,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProviderSelector({
-    required String value,
-    required Future<void> Function(String) onChanged,
-    required bool geminiEnabled,
-    required bool qwenEnabled,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildProviderOption(
-            label: 'Gemini',
-            value: 'gemini',
-            groupValue: value,
-            enabled: geminiEnabled,
-            onChanged: onChanged,
-          ),
-        ),
-        const SizedBox(width: AppTheme.spaceSm),
-        Expanded(
-          child: _buildProviderOption(
-            label: 'Qwen',
-            value: 'qwen',
-            groupValue: value,
-            enabled: qwenEnabled,
-            onChanged: onChanged,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProviderOption({
-    required String label,
-    required String value,
-    required String groupValue,
-    required bool enabled,
-    required Future<void> Function(String) onChanged,
-  }) {
-    final isSelected = value == groupValue;
-    return InkWell(
-      onTap: enabled ? () => onChanged(value) : null,
-      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.spaceMd,
-          vertical: AppTheme.spaceSm,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppTheme.primaryPurple.withOpacity(0.1)
-              : AppTheme.surfaceMedium,
-          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-          border: Border.all(
-            color: isSelected
-                ? AppTheme.primaryPurple
-                : enabled
-                    ? AppTheme.borderSubtle
-                    : AppTheme.borderSubtle.withOpacity(0.3),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isSelected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_unchecked,
-              size: 16,
-              color: enabled
-                  ? (isSelected
-                      ? AppTheme.primaryPurple
-                      : AppTheme.textTertiary)
-                  : AppTheme.textTertiary.withOpacity(0.3),
-            ),
-            const SizedBox(width: AppTheme.spaceXs),
-            Text(
-              label,
-              style: TextStyle(
-                color: enabled
-                    ? (isSelected
-                        ? AppTheme.primaryPurple
-                        : AppTheme.textSecondary)
-                    : AppTheme.textTertiary.withOpacity(0.3),
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              ),
-            ),
-            if (!enabled) ...[
-              const SizedBox(width: AppTheme.spaceXs),
-              Icon(
-                Icons.lock_outline_rounded,
-                size: 12,
-                color: AppTheme.textTertiary.withOpacity(0.5),
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }
@@ -753,31 +568,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final appState = context.read<AppState>();
 
       // Save API keys
-      await config.setCustomGeminiKey(_geminiKeyController.text.trim());
-      await config.setCustomQwenKey(_qwenKeyController.text.trim());
+      await config.setCustomOpenRouterKey(_openRouterKeyController.text.trim());
 
       // Reinitialize the Gemini model in AppState
       await appState.reinitializeServices();
-
-      if (!mounted) return;
 
       setState(() {
         _hasUnsavedChanges = false;
         _isSaving = false;
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('✓ Settings saved successfully'),
-          backgroundColor: AppTheme.accentGreen,
-          duration: Duration(seconds: 2),
+          content: Text('Settings saved successfully'),
+          backgroundColor: AppTheme.successGreen,
         ),
       );
     } catch (e) {
-      if (!mounted) return;
-
       setState(() => _isSaving = false);
-
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error saving settings: $e'),
@@ -787,41 +597,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _showResetDialog() {
-    showDialog(
+  Future<void> _showResetDialog() async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.surfaceDark,
-        title: const Text(
-          'Reset Settings',
-          style: TextStyle(color: AppTheme.textPrimary),
-        ),
+        title: const Text('Reset Settings?',
+            style: TextStyle(color: AppTheme.textPrimary)),
         content: const Text(
-          'Are you sure you want to reset all settings to their default values?',
+          'This will reset all settings to their default values. API keys will be cleared.',
           style: TextStyle(color: AppTheme.textSecondary),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel',
-                style: TextStyle(color: AppTheme.textTertiary)),
+                style: TextStyle(color: AppTheme.textSecondary)),
           ),
-          ElevatedButton(
-            onPressed: () {
-              context.read<ConfigService>().resetToDefaults();
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Settings reset to defaults')),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.errorRed,
-              foregroundColor: Colors.white,
-            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorRed),
             child: const Text('Reset'),
           ),
         ],
       ),
     );
+
+    if (confirmed == true) {
+      if (!mounted) return;
+      final config = context.read<ConfigService>();
+      await config.resetToDefaults();
+
+      setState(() {
+        _openRouterKeyController.text = config.customOpenRouterKey;
+        _maxIterationsController.text = config.maxIterations.toString();
+        _waitSecondsController.text = config.defaultWaitSeconds.toString();
+        _obscureOpenRouterKey = true;
+        _hasUnsavedChanges = false;
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Settings reset to defaults'),
+          backgroundColor: AppTheme.primaryPurple,
+        ),
+      );
+    }
   }
 }
