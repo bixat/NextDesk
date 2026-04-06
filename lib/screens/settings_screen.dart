@@ -14,10 +14,12 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _openRouterKeyController;
+  late TextEditingController _hCompanyKeyController;
   late TextEditingController _maxIterationsController;
   late TextEditingController _waitSecondsController;
 
   bool _obscureOpenRouterKey = true;
+  bool _obscureHCompanyKey = true;
   bool _hasUnsavedChanges = false;
   bool _isSaving = false;
 
@@ -27,6 +29,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final config = context.read<ConfigService>();
     _openRouterKeyController =
         TextEditingController(text: config.customOpenRouterKey);
+    _hCompanyKeyController =
+        TextEditingController(text: config.customHCompanyKey);
     _maxIterationsController =
         TextEditingController(text: config.maxIterations.toString());
     _waitSecondsController =
@@ -34,6 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     // Add listeners to track changes
     _openRouterKeyController.addListener(_markAsChanged);
+    _hCompanyKeyController.addListener(_markAsChanged);
     _maxIterationsController.addListener(_markAsChanged);
     _waitSecondsController.addListener(_markAsChanged);
   }
@@ -47,6 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _openRouterKeyController.dispose();
+    _hCompanyKeyController.dispose();
     _maxIterationsController.dispose();
     _waitSecondsController.dispose();
     super.dispose();
@@ -123,6 +129,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   helpUrl: 'https://openrouter.ai/keys',
                 ),
 
+                const SizedBox(height: AppTheme.spaceMd),
+
+                _buildApiKeyCard(
+                  config: config,
+                  title: 'HCompany API Key (for Holo3)',
+                  envKey: config.envHCompanyKey,
+                  hasEnvKey: config.hasEnvHCompanyKey,
+                  useEnv: config.useEnvHCompany,
+                  controller: _hCompanyKeyController,
+                  obscureText: _obscureHCompanyKey,
+                  onUseEnvChanged: (value) async {
+                    await config.setUseEnvHCompany(value);
+                    _markAsChanged();
+                  },
+                  onKeyChanged: (_) async {}, // No immediate save
+                  onToggleVisibility: () => setState(
+                      () => _obscureHCompanyKey = !_obscureHCompanyKey),
+                  helpUrl: 'https://hub.hcompany.ai/',
+                ),
+
                 const SizedBox(height: AppTheme.spaceLg),
 
                 // Performance Section
@@ -133,6 +159,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: AppTheme.spaceMd),
                 _buildPerformanceCard(config),
+
+                const SizedBox(height: AppTheme.spaceLg),
+
+                // AI Models Section
+                _buildSectionHeader(
+                  icon: Icons.smart_toy_rounded,
+                  title: 'AI Models',
+                  subtitle: 'Configure vision and chat models',
+                ),
+                const SizedBox(height: AppTheme.spaceMd),
+                _buildModelsCard(config),
 
                 const SizedBox(height: AppTheme.spaceLg),
 
@@ -400,6 +437,120 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildModelsCard(ConfigService config) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spaceMd),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceDark,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppTheme.borderMedium),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildModelSelector(
+            label: 'Vision Model',
+            currentValue: config.visionModel,
+            options: const [
+              {'value': 'hcompany/holo3-35b-a3b', 'label': 'Holo3 (hcompany)'},
+              {'value': 'google/gemini-3-pro-preview', 'label': 'Gemini 3 Pro'},
+              {'value': 'openai/gpt-4o', 'label': 'GPT-4o'},
+              {'value': 'anthropic/claude-3.5-sonnet', 'label': 'Claude 3.5 Sonnet'},
+            ],
+            onChanged: (value) {
+              config.setVisionModel(value);
+              _markAsChanged();
+            },
+            description: 'Model used for analyzing screenshots and detecting UI elements',
+          ),
+          const SizedBox(height: AppTheme.spaceMd),
+          _buildModelSelector(
+            label: 'Chat/Agent Model',
+            currentValue: config.chatModel,
+            options: const [
+              {'value': 'google/gemini-3-flash-preview', 'label': 'Gemini 3 Flash'},
+              {'value': 'google/gemini-2.5-pro', 'label': 'Gemini 2.5 Pro'},
+              {'value': 'openai/gpt-4o-mini', 'label': 'GPT-4o Mini'},
+              {'value': 'anthropic/claude-3.5-haiku', 'label': 'Claude 3.5 Haiku'},
+            ],
+            onChanged: (value) {
+              config.setChatModel(value);
+              _markAsChanged();
+            },
+            description: 'Model used for automation reasoning and task execution',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModelSelector({
+    required String label,
+    required String currentValue,
+    required List<Map<String, String>> options,
+    required Function(String) onChanged,
+    required String description,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppTheme.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: AppTheme.spaceXs),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spaceSm),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceMedium,
+            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            border: Border.all(color: AppTheme.borderSubtle),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: options.any((o) => o['value'] == currentValue)
+                  ? currentValue
+                  : options.first['value'],
+              isExpanded: true,
+              dropdownColor: AppTheme.surfaceDark,
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 13,
+              ),
+              icon: const Icon(
+                Icons.arrow_drop_down_rounded,
+                color: AppTheme.textTertiary,
+              ),
+              items: options.map((option) {
+                return DropdownMenuItem<String>(
+                  value: option['value'],
+                  child: Text(option['label'] ?? ''),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  onChanged(value);
+                }
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: AppTheme.spaceXs),
+        Text(
+          description,
+          style: const TextStyle(
+            color: AppTheme.textTertiary,
+            fontSize: 11,
+          ),
+        ),
+      ],
     );
   }
 

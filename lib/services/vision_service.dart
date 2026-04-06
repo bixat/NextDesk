@@ -4,25 +4,33 @@ import 'package:http/http.dart' as http;
 import '../models/detection_result.dart';
 import '../config/app_config.dart';
 import 'config_service.dart';
+import 'holo3_vision_service.dart';
 
-/// Element Position Detection Service using OpenRouter Vision API
+/// Element Position Detection Service using Vision API
+/// Supports both OpenRouter and HCompany Holo3 backends
 class VisionService {
-  static const String _openRouterApiUrl =
-      "https://openrouter.ai/api/v1/chat/completions";
-
   /// Detects the pixel coordinates of UI elements in a screenshot.
-  /// Uses OpenRouter.
+  /// Automatically selects the appropriate backend based on configured vision model.
   static Future<DetectionResult> detectElementPosition(Uint8List imageBytes,
       String elementDescription, ConfigService? config) async {
+    final visionModel = config?.visionModel ?? AppConfig.visionModel;
+
+    // Use HCompany Holo3 directly for holo3 models
+    if (visionModel.contains('hcompany') || visionModel.contains('holo3')) {
+      return Holo3VisionService.detectElementPosition(
+          imageBytes, elementDescription, config);
+    }
+
+    // Fallback to OpenRouter for other models
     final openRouterKey =
         config?.openRouterApiKey ?? AppConfig.openRouterApiKey;
-
-    return _detectWithOpenRouter(imageBytes, elementDescription, openRouterKey);
+    return _detectWithOpenRouter(
+        imageBytes, elementDescription, openRouterKey, visionModel);
   }
 
   /// Detects the pixel coordinates of UI elements using OpenRouter Vision API.
   static Future<DetectionResult> _detectWithOpenRouter(
-      Uint8List imageBytes, String elementDescription, String apiKey) async {
+      Uint8List imageBytes, String elementDescription, String apiKey, String visionModel) async {
     try {
       final base64Image = base64Encode(imageBytes);
 
@@ -46,7 +54,7 @@ Return your response in this exact JSON format:
 }''';
 
       final requestBody = {
-        "model": "google/gemini-3-pro-preview",
+        "model": visionModel,
         "messages": [
           {
             "role": "user",
@@ -68,7 +76,7 @@ Return your response in this exact JSON format:
 
       // Make API request
       final response = await http.post(
-        Uri.parse(_openRouterApiUrl),
+        Uri.parse("https://openrouter.ai/api/v1/chat/completions"),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $apiKey',
